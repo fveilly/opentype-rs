@@ -128,6 +128,12 @@ impl TableTag {
     }
 }
 
+impl fmt::Display for TableTag {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", Tag::from(*self))
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Tag ([u8; 4]);
 
