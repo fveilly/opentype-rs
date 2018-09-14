@@ -18,55 +18,105 @@ pub type Fixed = i32;
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TableTag {
+    /// Axis Variations Table
     Avar,
+    /// Baseline table
     Base,
+    /// Color Bitmap Data Table
     Cbdt,
+    /// Color Bitmap Location Table
     Cblc,
+    /// Compact Font Format table
     Cff,
+    /// Compact Font Format (CFF) Version 2
     Cff2,
+    /// Character to Glyph Index Mapping Table
     Cmap,
+    /// Color Table
     Colr,
+    /// Color Palette Table
     Cpal,
+    /// CVT Variations Table
     Cvar,
+    /// Control Value Table
     Cvt,
+    /// Digital Signature Table
     Dsig,
+    /// Embedded Bitmap Data Table
     Ebdt,
+    /// Embedded Bitmap Location Table
     Eblc,
+    /// Embedded Bitmap Scaling Table
     Ebsc,
+    /// Font Program
     Fpgm,
+    /// Font Variations Table
     Fvar,
+    /// Grid-fitting and Scan-conversion Procedure Table
     Gasp,
+    /// Glyph Definition Table
     Gdef,
+    /// Glyph Data
     Glyf,
+    /// Glyph Positioning Table
     Gpos,
+    /// Glyph Substitution Table
     Gsub,
+    /// Glyph Variations Table
     Gvar,
+    /// Horizontal Device Metrics
     Hdmx,
+    /// Font Header Table (See ['head'](tables::head::Head) table)
     Head,
+    /// Horizontal Header Table
     Hhea,
+    /// Horizontal Metrics Table
     Hmtx,
+    /// Horizontal Metrics Variations Table
     Hvar,
+    /// Justification Table
     Jstf,
+    /// Kerning
     Kern,
+    /// Index to Location
     Loca,
+    /// Linear Threshold
     Ltsh,
+    /// The mathematical typesetting table
     Math,
+    /// Maximum Profile
     Maxp,
+    /// Merge Table
     Merg,
+    /// Metadata Table
     Meta,
+    /// Metrics Variations Table
     Mvar,
+    /// Naming Table
     Name,
+    /// OS/2 and Windows Metrics Table
     Os2,
+    /// PCL 5 Table
     Pclt,
+    /// PostScript Table
     Post,
+    /// Control Value Program
     Prep,
+    /// Standard Bitmap Graphics Table
     Sbix,
+    /// Style Attributes Table
     Stat,
+    /// The SVG (Scalable Vector Graphics) table
     Svg,
+    /// Vertical Device Metrics
     Vdmx,
+    /// Vertical Header Table
     Vhea,
+    /// Vertical Metrics Table
     Vmtx,
+    /// Vertical Origin Table
     Vorg,
+    /// Vertical Metrics Variations Table
     Vvar
 }
 
@@ -224,7 +274,7 @@ impl fmt::Display for Tag {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Rect<T> {
     x_min: T,
     y_min: T,

@@ -196,8 +196,8 @@ named!(parse_ttc_header<&[u8],TTCHeader>,
 
 named!(parse_ttc_header_v1<&[u8],TTCHeader>,
     do_parse!(
-        tag!(&[0x00, 0x01]) >>
-        tag!(&[0x00, 0x00]) >>
+        verify!(be_u16, |major_version| major_version == 1) >>
+        verify!(be_u16, |minor_version| minor_version == 0) >>
         num_fonts: be_u32 >>
         offset_table: count!(be_u32, num_fonts as usize) >>
         (
@@ -212,8 +212,8 @@ named!(parse_ttc_header_v1<&[u8],TTCHeader>,
 
 named!(parse_ttc_header_v2<&[u8],TTCHeader>,
     do_parse!(
-        tag!(&[0x00, 0x02]) >>
-        tag!(&[0x00, 0x00]) >>
+        verify!(be_u16, |major_version| major_version == 2) >>
+        verify!(be_u16, |minor_version| minor_version == 0) >>
         num_fonts: be_u32 >>
         offset_table: count!(be_u32, num_fonts as usize) >>
         dsig_tag: be_u32 >>

@@ -15,6 +15,20 @@ pub struct OpenTypeFontFile<'otf> {
 }
 
 impl<'otf> OpenTypeFontFile<'otf> {
+    /// Parse the OpenType font file header and return an iterator over the fonts.
+    ///
+    /// ```
+    /// extern crate opentype_rs as otf;
+    ///
+    /// use otf::OpenTypeFontFile;
+    ///
+    /// let buf = include_bytes!("../fonts/Roboto/Roboto-Regular.ttf") as &[u8];
+    /// let otff = OpenTypeFontFile::parse(buf).unwrap();
+    ///
+    /// for font in otff {
+    ///     // Do something here
+    /// }
+    /// ```
     pub fn parse(buf: &'otf[u8]) -> Result<OpenTypeFontFile, Error> {
         let res = parse_otff(buf)?;
 
