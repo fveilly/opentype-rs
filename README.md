@@ -1,4 +1,4 @@
-# opentype-rs [![Build Status](https://travis-ci.org/fveilly/opentype-rs.svg?branch=master)](https://github.com/fveilly/rink-parser)
+# opentype-rs [![Build Status](https://travis-ci.org/fveilly/opentype-rs.svg?branch=master)](https://github.com/fveilly/opentype-rs)
 Safe, fast and memory efficient OpenType font file parser
 
 ## Overview
