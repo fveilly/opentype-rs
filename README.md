@@ -13,11 +13,19 @@ See [OpenType® specification](https://docs.microsoft.com/en-gb/typography/opent
 
 ```rust
 #[macro_use]
-extern crate opentype-rs;
+extern crate opentype_rs as otf;
 
-#[test]
-fn parse_otff() {
-    // TODO
+use otf::OpenTypeFontFile;
+
+fn main() {
+    let buf = include_bytes!("fonts/Roboto/Roboto-Regular.ttf") as &[u8];
+    let otff = OpenTypeFontFile::parse(buf).unwrap();
+
+    for font in otff {
+        for table in font.iter() {
+            // TODO
+        }
+    }
 }
 ```
 
