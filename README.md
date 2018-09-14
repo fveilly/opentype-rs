@@ -42,7 +42,7 @@ opentype-rs is in early stage and the APIs are far from stable.
 - [x] **head**: Font header
 - [x] **hhea**: Horizontal header
 - [ ] **hmtx**: Horizontal metrics
-- [ ] **maxp**: Maximum profile
+- [x] **maxp**: Maximum profile
 - [ ] **name**: Naming table
 - [ ] **OS/2**: OS/2 and Windows specific metrics
 - [ ] **post**: PostScript information

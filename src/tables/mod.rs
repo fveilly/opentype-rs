@@ -1,6 +1,6 @@
 pub mod head;
 pub mod hhea;
-//pub mod cmap;
+pub mod maxp;
 
 use error::Error;
 use types::{Tag, TableTag};
@@ -20,7 +20,7 @@ pub enum FontTable {
     /// Horizontal metrics
     Hmtx,
     /// Maximum profile
-    Maxp,
+    Maxp(maxp::Maxp),
     /// Naming table
     Name,
     /// OS/2 and Windows specific metrics
@@ -34,7 +34,8 @@ pub fn parse_table<'otf>(table_tag: TableTag, data: &'otf[u8]) -> Result<FontTab
     match table_tag {
         TableTag::Head => Ok(FontTable::Head((head::parse_head(data)?.1))),
         TableTag::Hhea => Ok(FontTable::Hhea((hhea::parse_hhea(data)?.1))),
-        _ => Err(Error::new(format!("Missing parser for table tag {}", Tag::from(table_tag))))
+        TableTag::Maxp => Ok(FontTable::Maxp((maxp::parse_maxp(data)?.1))),
+        _ => Err(Error::new(format!("Missing parser for table tag {}", table_tag)))
     }
 }
 
