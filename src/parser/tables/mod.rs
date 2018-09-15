@@ -1,3 +1,5 @@
+//! This module contains all nom parser required to parse the OpenType font tables.
+
 mod head;
 mod hhea;
 mod maxp;

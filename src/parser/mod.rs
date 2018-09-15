@@ -1,3 +1,14 @@
+//! This module contains all nom parser required to parse an OpenType font file.
+//!
+//! ## About nom crate
+//!
+//! nom is a parser combinators library written in Rust. Its goal is to provide tools to build safe
+//! parsers without compromising the speed or memory consumption. To that end, it uses extensively
+//! Rust's strong typing and memory safety to produce fast and correct parsers, and provides macros
+//! and traits to abstract most of the error prone plumbing.
+//!
+//! More information on [nom](https://crates.io/crates/nom) crate
+
 mod offset_table;
 mod table_record;
 mod ttc_header;

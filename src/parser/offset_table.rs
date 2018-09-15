@@ -3,8 +3,8 @@ use std::fmt;
 
 /// The OpenType font starts with the Offset Table. If the font file contains only one font, the
 /// Offset Table will begin at byte 0 of the file. If the font file is an OpenType Font Collection
-/// file (see below), the beginning point of the Offset Table for each font is indicated in the
-/// TTCHeader.
+/// file, the beginning point of the Offset Table for each font is indicated in the
+/// [TTCHeader](TTCHeader.t.html).
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct OffsetTable {
     sfnt_version: SfntVersion,
@@ -15,7 +15,7 @@ pub struct OffsetTable {
 }
 
 impl OffsetTable {
-    // Font file format type
+    /// Font file format type
     pub fn sfnt_version(&self) -> SfntVersion {
         self.sfnt_version
     }
@@ -41,9 +41,21 @@ impl OffsetTable {
     }
 }
 
+/// SFNT version (see [SFNT](https://en.wikipedia.org/wiki/SFNT))
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum SfntVersion {
+    /// TrueType is an outline font standard developed by Apple and Microsoft in the late 1980s as
+    /// a competitor to Adobe's Type 1 fonts used in PostScript. It has become the most common
+    /// format for fonts on the classic Mac OS, macOS, and Microsoft Windows operating systems (source:
+    /// [TrueType](https://en.wikipedia.org/wiki/TrueType)).
     TrueType,
+
+    /// Compact Font Format (also known as CFF font format, Type 2 font format, or CFF/Type 2 font
+    /// format) is a lossless compaction of the Type 1 format using Type 2 charstrings. It is
+    /// designed to use less storage space than Type 1 fonts, by using operators with multiple
+    /// arguments, various predefined default values, more efficient allotment of encoding values
+    /// and shared subroutines within a FontSet (family of fonts) (source:
+    /// [CFF](https://en.wikipedia.org/wiki/PostScript_fonts#Compact_Font_Format)).
     CFF
 }
 
