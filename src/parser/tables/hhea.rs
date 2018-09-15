@@ -1,12 +1,11 @@
-//! Horizontal Header Table
-//!
-//! The 'hhea' table contains information needed to layout fonts whose characters are written
-//! horizontally, that is, either left to right or right to left.
-//!
-//! More information on ['hhea'](https://docs.microsoft.com/en-gb/typography/opentype/spec/hhea)
-
 use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
 
+/// Horizontal Header Table
+///
+/// The 'hhea' table contains information needed to layout fonts whose characters are written
+/// horizontally, that is, either left to right or right to left.
+///
+/// More information on ['hhea'](https://docs.microsoft.com/en-gb/typography/opentype/spec/hhea)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Hhea {
     ascender: i16,
@@ -95,7 +94,7 @@ named!(
         ```
         extern crate opentype_rs as otf;
 
-        use otf::tables::hhea::{Hhea, parse_hhea};
+        use otf::parser::tables::{Hhea, parse_hhea};
 
         let bytes: &[u8]  = &[
             0x00, 0x01, 0x00, 0x00, 0x07, 0x6C, 0xFE, 0x0C, 0x00, 0x00, 0x09, 0x49, 0xFA, 0x1B,

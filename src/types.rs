@@ -121,7 +121,21 @@ pub enum TableTag {
 }
 
 impl TableTag {
-    pub fn parse_into(tag: Tag) -> Option<TableTag> {
+    /// Converts a Tag into Option<TableTag>.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// extern crate opentype_rs as otf;
+    ///
+    /// use otf::{Tag, TableTag};
+    ///
+    /// let tag = Tag::new(b"head");
+    /// let table_tag = TableTag::parse(tag).unwrap();
+    ///
+    /// assert_eq!(table_tag, TableTag::Head);
+    /// ```
+    pub fn parse(tag: Tag) -> Option<TableTag> {
         match &tag.0 {
             b"avar" => Some(TableTag::Avar),
             b"BASE" => Some(TableTag::Base),
@@ -274,6 +288,7 @@ impl fmt::Display for Tag {
     }
 }
 
+/// A rectangular bounding box defined by two points (x_min, y_min) and (x_max, y_max).
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Rect<T> {
     x_min: T,

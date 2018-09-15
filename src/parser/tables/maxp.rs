@@ -1,13 +1,12 @@
-//! Maximum Profile Table
-//!
-//! The 'maxp' table establishes the memory requirements for a font. It begins with a table
-//! version number.
-//!
-//! More information on ['maxp'](https://docs.microsoft.com/en-gb/typography/opentype/spec/maxp)
-
 use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
 use types::{Fixed, LongDateTime, Rect};
 
+/// Maximum Profile Table
+///
+/// The 'maxp' table establishes the memory requirements for a font. It begins with a table
+/// version number.
+///
+/// More information on ['maxp'](https://docs.microsoft.com/en-gb/typography/opentype/spec/maxp)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Maxp {
     Simple(MaxpSimple),
@@ -138,7 +137,7 @@ named!(
         ```
         extern crate opentype_rs as otf;
 
-        use otf::tables::maxp::{Maxp, parse_maxp};
+        use otf::parser::tables::{Maxp, parse_maxp};
 
         let bytes: &[u8]  = &[
             0x00, 0x00, 0x50, 0x00, 0x05, 0x0E];
@@ -155,7 +154,7 @@ named!(
         ```
         extern crate opentype_rs as otf;
 
-        use otf::tables::maxp::{Maxp, parse_maxp};
+        use otf::parser::tables::{Maxp, parse_maxp};
 
         let bytes: &[u8]  = &[
             0x00, 0x01, 0x00, 0x00, 0x05, 0x0E, 0x00, 0x8F, 0x00, 0x16, 0x00, 0x54, 0x00, 0x05,

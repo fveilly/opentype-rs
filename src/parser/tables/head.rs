@@ -1,14 +1,13 @@
-//! Font Header Table
-//!
-//! The 'head' table contains global information about the font. It records such facts as the font
-//! version number, the creation and modification dates, revision number and basic typographic data
-//! that applies to the font as a whole.
-//!
-//! More information on ['head'](https://docs.microsoft.com/en-gb/typography/opentype/spec/head)
-
 use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
 use types::{Fixed, LongDateTime, Rect};
 
+/// Font Header Table
+///
+/// The 'head' table contains global information about the font. It records such facts as the font
+/// version number, the creation and modification dates, revision number and basic typographic data
+/// that applies to the font as a whole.
+///
+/// More information on ['head'](https://docs.microsoft.com/en-gb/typography/opentype/spec/head)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct Head {
     font_revision: Fixed,
@@ -129,7 +128,7 @@ named!(
         ```
         extern crate opentype_rs as otf;
 
-        use otf::tables::head::{Head, parse_head};
+        use otf::parser::tables::{Head, parse_head};
         use otf::Rect;
 
         let bytes: &[u8]  = &[
