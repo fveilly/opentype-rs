@@ -18,6 +18,7 @@ fn main() {
                 Some(TableTag::Head) => println!("{}", table),
                 Some(TableTag::Hhea) => println!("{}", table),
                 Some(TableTag::Maxp) => println!("{}", table),
+                Some(TableTag::Os2) => println!("{}", table),
                 _ => {}
             }
         }

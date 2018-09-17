@@ -11,3 +11,4 @@ exclude = ["/fonts/**"]
 [dependencies]
 nom = "^4.0"
 byteorder = "^1.2"
+bitflags = "^1.0.4"

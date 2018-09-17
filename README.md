@@ -44,7 +44,7 @@ opentype-rs is in early stage and the APIs are far from stable.
 - [ ] **hmtx**: Horizontal metrics
 - [x] **maxp**: Maximum profile
 - [ ] **name**: Naming table
-- [ ] **OS/2**: OS/2 and Windows specific metrics
+- [x] **OS/2**: OS/2 and Windows specific metrics
 - [ ] **post**: PostScript information
 
 #### Tables Related to TrueType Outlines

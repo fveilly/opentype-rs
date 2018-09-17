@@ -1,12 +1,14 @@
-//! This module contains all nom parser required to parse the OpenType font tables.
+//! This module contains all nom parsers required to parse the OpenType font tables.
 
 mod head;
 mod hhea;
 mod maxp;
+mod os2;
 
-pub use self::head::{Head, parse_head};
-pub use self::hhea::{Hhea, parse_hhea};
-pub use self::maxp::{Maxp, parse_maxp};
+pub use self::head::*;
+pub use self::hhea::*;
+pub use self::maxp::*;
+pub use self::os2::*;
 
 use error::Error;
 use types::{Tag, TableTag};
@@ -30,7 +32,7 @@ pub enum FontTable {
     /// Naming table
     Name,
     /// OS/2 and Windows specific metrics
-    Os2,
+    Os2(os2::Os2),
     /// PostScript information
     Post
 }
@@ -78,7 +80,8 @@ named_args!(
         value!(table_tag),
         TableTag::Head => map!(head::parse_head, |head_table| FontTable::Head(head_table)) |
         TableTag::Hhea => map!(hhea::parse_hhea, |hhea_table| FontTable::Hhea(hhea_table)) |
-        TableTag::Maxp => map!(maxp::parse_maxp, |maxp_table| FontTable::Maxp(maxp_table))
+        TableTag::Maxp => map!(maxp::parse_maxp, |maxp_table| FontTable::Maxp(maxp_table)) |
+        TableTag::Os2 => map!(os2::parse_os2, |os2_table| FontTable::Os2(os2_table))
     )
 );
 

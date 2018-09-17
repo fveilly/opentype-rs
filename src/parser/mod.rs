@@ -1,4 +1,4 @@
-//! This module contains all nom parser required to parse an OpenType font file.
+//! This module contains all nom parsers required to parse an OpenType font file.
 //!
 //! ## About nom crate
 //!
