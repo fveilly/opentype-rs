@@ -32,7 +32,12 @@ impl<'otf> Font<'otf> {
     pub fn search(&self, table_tag: TableTag) -> Option<Table> {
         let tag: Tag = Tag::from(table_tag);
         match self.table_records.binary_search_by(|table_record| table_record.table_tag().cmp(&tag)) {
-            Ok(index) => self.table_records.get(index).map(|table_record| Table::new(self.buf, *table_record)),
+            Ok(index) => self.table_records.get(index).and_then(|table_record| {
+                match TableTag::parse(table_record.table_tag()) {
+                    Some(table_tag) => Some(Table::new(self.buf, table_tag, *table_record)),
+                    _=> None
+                }
+            }),
             _ => None
         }
     }
@@ -54,7 +59,12 @@ impl<'otf, 'a> Iterator for FontIterator<'otf, 'a> {
         else {
             let element = self.table_records.get(self.pos);
             self.pos = self.pos + 1;
-            element.map(|table_record| Table::new(self.buf, *table_record))
+            element.and_then(|table_record| {
+                match TableTag::parse(table_record.table_tag()) {
+                    Some(table_tag) => Some(Table::new(self.buf, table_tag, *table_record)),
+                    None => self.next()
+                }
+            })
         }
     }
 

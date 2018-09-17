@@ -74,8 +74,6 @@ impl<'otf> Iterator for OpenTypeFontFileIterator<'otf> {
                             self.otff.buf, offset_table.sfnt_version(), table_records)),
                         _ => None
                     }
-
-
                 }
             },
             OpenTypeFontKind::FontCollection(ttc_header) => {

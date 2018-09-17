@@ -12,13 +12,11 @@ fn main() {
         for table in font.iter() {
             println!("  TABLE tag='{}' checksum={}", table.tag(), if table.validate() { "OK" } else { "ERROR" });
 
-            let table_tag = TableTag::parse(table.tag());
-
-            match table_tag {
-                Some(TableTag::Head) => println!("{}", table),
-                Some(TableTag::Hhea) => println!("{}", table),
-                Some(TableTag::Maxp) => println!("{}", table),
-                Some(TableTag::Os2) => println!("{}", table),
+            match table.tag() {
+                TableTag::Head => println!("{}", table),
+                TableTag::Hhea => println!("{}", table),
+                TableTag::Maxp => println!("{}", table),
+                TableTag::Os2 => println!("{}", table),
                 _ => {}
             }
         }
