@@ -1462,3 +1462,84 @@ named!(parse_lang_tag_record<&[u8],LangTagRecord>,
         )
     )
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nom::{Err, ErrorKind, Context, Needed};
+
+    #[test]
+    fn case_naming_table_invalid_empty_slice() {
+        let bytes: &[u8] = &[];
+
+        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        assert_eq!(parse_naming_table(bytes), expected);
+    }
+
+    #[test]
+    fn case_naming_table_invalid_format() {
+        let bytes: &[u8] = &[0x01, 0x01];
+
+        let expected =  Result::Err(Err::Error(Context::Code(bytes, ErrorKind::Alt)));
+        assert_eq!(parse_naming_table(bytes), expected);
+    }
+
+    #[test]
+    fn case_naming_table_invalid_incomplete() {
+        let bytes: &[u8] = &[0x00, 0x00, 0x00, 0x1A, 0x01, 0x3E, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x2F, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x01, 0x00, 0x06, 0x00, 0x2F, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+            0x07, 0x00, 0x35];
+
+        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        assert_eq!(parse_naming_table(bytes), expected);
+    }
+
+    #[test]
+    fn case_name_record_name_id_font_specific_name() {
+        let bytes: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xFF,
+            0x00, 0x00, 0x00, 0x00];
+
+        let expected = (&b""[..], NameRecord {
+            platform: Platform::new(1, 0, 0).unwrap(),
+            name_id: NameId::FontSpecificName(0x0FFF),
+            offset: 0,
+            length: 0
+        });
+
+        let res = parse_name_record(bytes).unwrap();
+        assert_eq!(res,  expected);
+    }
+
+    #[test]
+    fn case_name_record_invalid_platform_id() {
+        let bytes: &[u8] = &[0x00, 0x05, 0x00, 0x00, 0x00, 0x00];
+
+        let expected =  Result::Err(Err::Error(Context::Code(&b""[..], ErrorKind::ExprOpt)));
+        assert_eq!(parse_name_record(bytes), expected);
+    }
+
+    #[test]
+    fn case_name_record_invalid_macintosh_encoding_id() {
+        let bytes: &[u8] = &[0x00, 0x01, 0x00, 0xFF, 0x00, 0x00];
+
+        let expected =  Result::Err(Err::Error(Context::Code(&b""[..], ErrorKind::ExprOpt)));
+        assert_eq!(parse_name_record(bytes), expected);
+    }
+
+    #[test]
+    fn case_name_record_invalid_macintosh_language_id() {
+        let bytes: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0xFF];
+
+        let expected =  Result::Err(Err::Error(Context::Code(&b""[..], ErrorKind::ExprOpt)));
+        assert_eq!(parse_name_record(bytes), expected);
+    }
+
+    #[test]
+    fn case_name_record_invalid_name_id() {
+        let bytes: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF];
+
+        let expected =  Result::Err(Err::Error(Context::Code(&bytes[6..], ErrorKind::MapOpt)));
+        assert_eq!(parse_name_record(bytes), expected);
+    }
+}

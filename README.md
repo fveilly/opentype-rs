@@ -33,7 +33,7 @@ fn main() {
 [support]: #support
 
 <aside class="warning">
-opentype-rs is in early stage and the APIs are far from stable.
+opentype-rs is in early stage and the public APIs are still likely to change.
 </aside>
 
 #### Required Tables
