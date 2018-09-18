@@ -1,7 +1,6 @@
 extern crate opentype_rs as otf;
 
-use otf::OpenTypeFontFile;
-use otf::TableTag;
+use otf::{OpenTypeFontFile, TableTag};
 use otf::parser::tables::FontTable;
 
 fn main() {
@@ -9,21 +8,19 @@ fn main() {
     let otff = OpenTypeFontFile::parse(buf).unwrap();
 
     for font in otff {
-        println!("FONT sfnt_version={}", font.sfnt_version());
-        for table in font.iter() {
-            println!("  TABLE tag='{}' checksum={}", table.tag(), if table.validate() { "OK" } else { "ERROR" });
+        let iter = font.iter().filter(|table| {
+            table.tag() == TableTag::Head || table.tag() == TableTag::Name
+        });
 
-            match table.tag() {
-                TableTag::Head | TableTag::Hhea | TableTag::Maxp | TableTag::Os2 => {
-                    println!("    BUF={}", table);
-
-                    match table.parse().unwrap() {
-                        FontTable::Head(o) => println!("    OBJ={:?}", o),
-                        FontTable::Hhea(o) => println!("    OBJ={:?}", o),
-                        FontTable::Maxp(o) => println!("    OBJ={:?}", o),
-                        FontTable::Os2(o) => println!("    OBJ={:?}", o),
-                        _ => {}
-                    }
+        for table in iter {
+            match table.parse() {
+                Ok(FontTable::Head(head_table)) => {
+                    let bounding_box = head_table.bounding_box();
+                    // ...
+                },
+                Ok(FontTable::Name(name_table)) => {
+                    let name_records = name_table.name_records();
+                    // ...
                 },
                 _ => {}
             }
