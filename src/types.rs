@@ -15,7 +15,6 @@ pub type LongDateTime = i64;
 
 pub type Fixed = i32;
 
-#[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum TableTag {
     /// Axis Variations Table

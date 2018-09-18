@@ -3,11 +3,13 @@
 mod head;
 mod hhea;
 mod maxp;
+mod name;
 mod os2;
 
 pub use self::head::*;
 pub use self::hhea::*;
 pub use self::maxp::*;
+pub use self::name::*;
 pub use self::os2::*;
 
 use error::Error;
@@ -30,7 +32,7 @@ pub enum FontTable {
     /// Maximum profile
     Maxp(maxp::Maxp),
     /// Naming table
-    Name,
+    Name(NamingTable),
     /// OS/2 and Windows specific metrics
     Os2(os2::Os2),
     /// PostScript information
@@ -81,6 +83,7 @@ named_args!(
         TableTag::Head => map!(head::parse_head, |head_table| FontTable::Head(head_table)) |
         TableTag::Hhea => map!(hhea::parse_hhea, |hhea_table| FontTable::Hhea(hhea_table)) |
         TableTag::Maxp => map!(maxp::parse_maxp, |maxp_table| FontTable::Maxp(maxp_table)) |
+        TableTag::Name => map!(name::parse_naming_table, |naming_table| FontTable::Name(naming_table)) |
         TableTag::Os2 => map!(os2::parse_os2, |os2_table| FontTable::Os2(os2_table))
     )
 );
