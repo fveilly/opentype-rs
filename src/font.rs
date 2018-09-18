@@ -33,7 +33,19 @@ impl<'otf> Font<'otf> {
         let tag: Tag = Tag::from(table_tag);
         match self.table_records.binary_search_by(|table_record| table_record.table_tag().cmp(&tag)) {
             Ok(index) => self.table_records.get(index).and_then(|table_record| {
-                TableTag::parse(table_record.table_tag()).map(|table_tag| Table::new(self.buf, table_tag, *table_record))
+                if table_record.length() == 0 {
+                    return None;
+                }
+
+                let boundary: usize = (table_record.offset() + ((table_record.length() + 3) & !3)) as usize;
+
+                if self.buf.len() < boundary {
+                    return None;
+                }
+
+                TableTag::parse(table_record.table_tag()).map(|table_tag|
+                    Table::new(&self.buf[table_record.offset() as usize..boundary],
+                                   table_tag, table_record.check_sum()))
             }),
             _ => None
         }
@@ -61,7 +73,14 @@ impl<'otf, 'a> Iterator for FontIterator<'otf, 'a> {
             match element {
                 Some(table_record) => {
                     if let Some(table_tag) = TableTag::parse(table_record.table_tag()) {
-                        return Some(Table::new(self.buf, table_tag, *table_record));
+                        if table_record.length() > 0 {
+                            let boundary: usize = (table_record.offset() + ((table_record.length() + 3) & !3)) as usize;
+
+                            if self.buf.len() >= boundary {
+                                return Some(Table::new(&self.buf[table_record.offset() as usize..boundary],
+                                                       table_tag, table_record.check_sum()));
+                            }
+                        }
                     }
                 },
                 _ => return None

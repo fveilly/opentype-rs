@@ -323,25 +323,3 @@ impl<T> Rect<T> where T: Copy {
         self.y_max
     }
 }
-
-pub struct HexSlice<'a>(&'a [u8]);
-
-impl<'a> HexSlice<'a> {
-    pub fn new<T>(data: &'a T) -> HexSlice<'a>
-        where T: ?Sized + AsRef<[u8]> + 'a
-    {
-        HexSlice(data.as_ref())
-    }
-}
-
-impl<'a> fmt::Display for HexSlice<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        for (index, byte) in self.0.iter().enumerate() {
-            if index % 26 == 0 {
-                write!(f, "\n")?;
-            }
-            write!(f, "{:01$X} ", byte, 2)?;
-        }
-        Ok(())
-    }
-}

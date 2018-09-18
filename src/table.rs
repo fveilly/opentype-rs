@@ -1,21 +1,22 @@
 use byteorder::{ByteOrder, BigEndian};
-use parser::TableRecord;
+use error::Error;
+use parser::{TableRecord};
+use parser::tables::{FontTable, parse_table};
 use types::{TableTag, Tag};
-use types::HexSlice;
 use std::{fmt, cmp};
 
 pub struct Table<'otf> {
     buf: &'otf[u8],
     tag: TableTag,
-    table_record: TableRecord,
+    checksum: u32
 }
 
 impl<'otf> Table<'otf> {
-    pub fn new(buf: &'otf[u8], tag: TableTag, table_record: TableRecord) -> Table {
+    pub fn new(buf: &'otf[u8], tag: TableTag, checksum: u32) -> Table {
         Table {
             buf,
             tag,
-            table_record
+            checksum
         }
     }
 
@@ -24,21 +25,10 @@ impl<'otf> Table<'otf> {
     }
 
     pub fn validate(&self) -> bool {
-        if self.table_record.length() == 0 {
-            return self.table_record.check_sum() == 0;
-        }
-
-        let boundary : usize = (self.table_record.offset() + ((self.table_record.length() + 3) & !3)) as usize;
-
-        if self.buf.len() < boundary  {
-            return false;
-        }
-
-        let table_buf = &self.buf[self.table_record.offset() as usize..boundary];
         let mut sum : u32 = 0;
 
         // FIXME: Should use exact_chuncks instead of chuncks when stable (cf. #47115)
-        let mut iter = table_buf.chunks(4);
+        let mut iter = self.buf.chunks(4);
 
         match self.tag {
             TableTag::Head => {
@@ -73,19 +63,17 @@ impl<'otf> Table<'otf> {
             }
         }
 
-        sum == self.table_record.check_sum()
+        sum == self.checksum
+    }
+
+    pub fn parse(&self) -> Result<FontTable, Error> {
+        Ok(parse_table(self.buf, self.tag)?.1)
     }
 }
 
 impl<'otf> fmt::Display for Table<'otf> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let boundary : usize = (self.table_record.offset() + self.table_record.length()) as usize;
-
-        if self.buf.len() < boundary {
-            return Err(fmt::Error);
-        }
-
-        write!(f, "{}", HexSlice::new(&self.buf[self.table_record.offset() as usize..boundary]))
+        write!(f, "{:X?}", self.buf)
     }
 }
 
