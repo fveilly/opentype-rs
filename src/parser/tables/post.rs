@@ -1,4 +1,6 @@
-use nom::{be_i16, be_u16, be_i32, be_u32};
+use nom::{be_u8, be_i16, be_u16, be_i32, be_u32, IResult};
+use std::str;
+use error::Error;
 
 /// PostScript Table
 ///
@@ -250,7 +252,7 @@ impl PostScriptTableHeader {
 pub struct PostScriptTableV20 {
     header: PostScriptTableHeader,
     num_glyphs: u16,
-    glyph_name_index: Vec<u16>
+    glyph_name_indexes: Vec<u16>
 }
 
 impl PostScriptTableV20 {
@@ -308,8 +310,26 @@ impl PostScriptTableV20 {
     }
 
     /// This is not an offset, but is the ordinal number of the glyph in 'post' string tables.
-    pub fn glyph_name_index(&self) -> &[u16] {
-        &self.glyph_name_index
+    pub fn glyph_name_indexes(&self) -> &[u16] {
+        &self.glyph_name_indexes
+    }
+
+    /// Parse the glyph names into a vector of &str.
+    pub fn parse_glyph_names<'otf>(&self, input: &'otf[u8]) -> Result<Vec<&'otf str>, Error> {
+        let count = self.glyph_name_indexes.iter().fold(0, |n, &i| {
+            if 258 <= i && i <= 32767 { n + 1 } else { n }
+        });
+
+        Ok(parse_pascal_strings(input, count)?.1)
+    }
+
+    /// Parse the glyph names into a vector of String.
+    pub fn parse_glyph_names_to_owned(&self, input: &[u8]) -> Result<Vec<String>, Error> {
+        let count = self.glyph_name_indexes.iter().fold(0, |n, &i| {
+            if 258 <= i && i <= 32767 { n + 1 } else { n }
+        });
+
+        Ok(parse_pascal_strings_to_owned(input, count)?.1)
     }
 }
 
@@ -392,16 +412,64 @@ named!(parse_post_script_table_v2_0<&[u8],PostScriptTableV20>,
     do_parse!(
         header: parse_post_script_header >>
         num_glyphs: be_u16 >>
-        glyph_name_index: count!(be_u16, usize::from(num_glyphs)) >>
+        glyph_name_indexes: count!(be_u16, usize::from(num_glyphs)) >>
         (
             PostScriptTableV20 {
                 header,
                 num_glyphs,
-                glyph_name_index
+                glyph_name_indexes
             }
         )
     )
 );
+
+/// Parse a list of Pascal Strings and store them into a Vec<&str>.
+///
+/// See [https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed](https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed)
+///
+/// # Example
+///
+/// ```
+/// extern crate opentype_rs as otf;
+///
+/// use otf::parser::tables::parse_pascal_strings;
+///
+/// let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
+///     0x6F, 0x72, 0x6C, 0x64];
+///
+/// let pascal_strings = parse_pascal_strings(bytes, 2).unwrap().1;
+///
+/// assert_eq!(pascal_strings.len(), 2);
+/// assert_eq!(pascal_strings.get(0).unwrap(), &"Hello");
+/// assert_eq!(pascal_strings.get(1).unwrap(), &"World");
+/// ```
+pub fn parse_pascal_strings(input: &[u8], length: usize) -> IResult<&[u8], Vec<&str>> {
+    count!(input, map_res!(length_data!(be_u8), |s| str::from_utf8(s)), length)
+}
+
+/// Parse a list of Pascal Strings and store them into a Vec<String>.
+///
+/// See [https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed](https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed)
+///
+/// # Example
+///
+/// ```
+/// extern crate opentype_rs as otf;
+///
+/// use otf::parser::tables::parse_pascal_strings_to_owned;
+///
+/// let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
+///     0x6F, 0x72, 0x6C, 0x64];
+///
+/// let pascal_strings = parse_pascal_strings_to_owned(bytes, 2).unwrap().1;
+///
+/// assert_eq!(pascal_strings.len(), 2);
+/// assert_eq!(pascal_strings.get(0).unwrap(), &"Hello");
+/// assert_eq!(pascal_strings.get(1).unwrap(), &"World");
+/// ```
+pub fn parse_pascal_strings_to_owned(input: &[u8], length: usize) -> IResult<&[u8], Vec<String>> {
+    count!(input, map_res!(length_data!(be_u8), |s: &[u8]| String::from_utf8(s.to_vec())), length)
+}
 
 #[cfg(test)]
 mod tests {
