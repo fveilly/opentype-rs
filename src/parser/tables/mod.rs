@@ -6,6 +6,7 @@ mod hmtx;
 mod maxp;
 mod name;
 mod os2;
+mod post;
 
 pub use self::head::*;
 pub use self::hhea::*;
@@ -13,6 +14,7 @@ pub use self::hmtx::*;
 pub use self::maxp::*;
 pub use self::name::*;
 pub use self::os2::*;
+pub use self::post::*;
 
 use error::Error;
 use nom::{IResult, Err, ErrorKind};
@@ -39,7 +41,7 @@ pub enum FontTable {
     /// OS/2 and Windows specific metrics
     Os2(os2::Os2),
     /// PostScript information
-    Post
+    Post(post::PostScriptTable)
 }
 
 #[doc="
@@ -87,6 +89,7 @@ pub fn parse_table(input: &[u8], table_tag: TableTag)-> IResult<&[u8], FontTable
         TableTag::Maxp => map!(input, maxp::parse_maxp, |maxp_table| FontTable::Maxp(maxp_table)),
         TableTag::Name => map!(input, name::parse_naming_table, |naming_table| FontTable::Name(naming_table)),
         TableTag::Os2 => map!(input, os2::parse_os2, |os2_table| FontTable::Os2(os2_table)),
+        TableTag::Post => map!(input, post::parse_post_script_table, |post_script_table| FontTable::Post(post_script_table)),
         _ => Err(Err::Error(error_position!(&input[..], ErrorKind::Switch)))
     }
 }

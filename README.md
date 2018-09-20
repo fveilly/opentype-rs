@@ -59,7 +59,7 @@ opentype-rs is in early stage and the public APIs are still likely to change.
 - [x] **maxp**: Maximum profile
 - [x] **name**: Naming table
 - [x] **OS/2**: OS/2 and Windows specific metrics
-- [ ] **post**: PostScript information
+- [x] **post**: PostScript information
 
 #### Tables Related to TrueType Outlines
 
