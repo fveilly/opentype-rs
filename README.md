@@ -55,7 +55,7 @@ opentype-rs is in early stage and the public APIs are still likely to change.
 - [ ] **cmap**: Character to glyph mapping
 - [x] **head**: Font header
 - [x] **hhea**: Horizontal header
-- [ ] **hmtx**: Horizontal metrics
+- [x] **hmtx**: Horizontal metrics
 - [x] **maxp**: Maximum profile
 - [x] **name**: Naming table
 - [x] **OS/2**: OS/2 and Windows specific metrics
