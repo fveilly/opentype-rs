@@ -29,13 +29,13 @@ pub enum FontTable {
     /// Character to glyph mapping
     Cmap,
     /// Font header
-    Head(head::Head),
+    Head(head::FontHeaderTable),
     /// Horizontal header
-    Hhea(hhea::Hhea),
+    Hhea(hhea::HorizontalHeaderTable),
     /// Horizontal metrics
     Hmtx(hmtx::HorizontalMetricsTable),
     /// Maximum profile
-    Maxp(maxp::Maxp),
+    Maxp(maxp::MaximumProfileTable),
     /// Naming table
     Name(NamingTable),
     /// OS/2 and Windows specific metrics
@@ -64,19 +64,19 @@ pub enum FontTable {
     let table = parse_table(bytes, TableTag::Head).unwrap().1;
 
     match table {
-        FontTable::Head(head_table) => {
-            assert_eq!(head_table.font_revision(), 140050);
-            assert_eq!(head_table.check_sum_adjustment(), 2323607624);
-            assert_eq!(head_table.flags(), 25);
-            assert_eq!(head_table.units_per_em(), 2048);
-            assert_eq!(head_table.created(), 3304067374);
-            assert_eq!(head_table.modified(), 3573633780);
-            assert_eq!(head_table.bounding_box(), Rect::new(-1509, -555, 2352, 2163));
-            assert_eq!(head_table.mac_style(), 0);
-            assert_eq!(head_table.lowest_rec_ppem(), 9);
-            assert_eq!(head_table.font_direction_hint(), 2);
-            assert_eq!(head_table.index_to_loc_format(),  0);
-            assert_eq!(head_table.glyph_data_format(), 0);
+        FontTable::Head(font_header_table) => {
+            assert_eq!(font_header_table.font_revision(), 140050);
+            assert_eq!(font_header_table.check_sum_adjustment(), 2323607624);
+            assert_eq!(font_header_table.flags(), 25);
+            assert_eq!(font_header_table.units_per_em(), 2048);
+            assert_eq!(font_header_table.created(), 3304067374);
+            assert_eq!(font_header_table.modified(), 3573633780);
+            assert_eq!(font_header_table.bounding_box(), Rect::new(-1509, -555, 2352, 2163));
+            assert_eq!(font_header_table.mac_style(), 0);
+            assert_eq!(font_header_table.lowest_rec_ppem(), 9);
+            assert_eq!(font_header_table.font_direction_hint(), 2);
+            assert_eq!(font_header_table.index_to_loc_format(),  0);
+            assert_eq!(font_header_table.glyph_data_format(), 0);
         },
         _ => assert!(false)
     }
@@ -84,12 +84,12 @@ pub enum FontTable {
 "]
 pub fn parse_table(input: &[u8], table_tag: TableTag)-> IResult<&[u8], FontTable> {
     match table_tag {
-        TableTag::Head => map!(input, head::parse_head, |head_table| FontTable::Head(head_table)),
-        TableTag::Hhea => map!(input, hhea::parse_hhea, |hhea_table| FontTable::Hhea(hhea_table)),
-        TableTag::Maxp => map!(input, maxp::parse_maxp, |maxp_table| FontTable::Maxp(maxp_table)),
-        TableTag::Name => map!(input, name::parse_naming_table, |naming_table| FontTable::Name(naming_table)),
-        TableTag::Os2 => map!(input, os2::parse_os2, |os2_table| FontTable::Os2(os2_table)),
-        TableTag::Post => map!(input, post::parse_post_script_table, |post_script_table| FontTable::Post(post_script_table)),
+        TableTag::Head => map!(input, head::parse_font_header_table, |table| FontTable::Head(table)),
+        TableTag::Hhea => map!(input, hhea::parse_horizontal_header_table, |table| FontTable::Hhea(table)),
+        TableTag::Maxp => map!(input, maxp::parse_maximum_profile_table, |table| FontTable::Maxp(table)),
+        TableTag::Name => map!(input, name::parse_naming_table, |table| FontTable::Name(table)),
+        TableTag::Os2 => map!(input, os2::parse_os2, |table| FontTable::Os2(table)),
+        TableTag::Post => map!(input, post::parse_post_script_table, |table| FontTable::Post(table)),
         _ => Err(Err::Error(error_position!(&input[..], ErrorKind::Switch)))
     }
 }

@@ -339,12 +339,16 @@ named!(
 
         # Example
 
-        Post Script Table version 1
+        Post Script Table version 2
+        ```
+        // TODO
+        ```
+
+        Post Script Table version 3
         ```
         extern crate opentype_rs as otf;
 
         use otf::parser::tables::{PostScriptTable, parse_post_script_table};
-        use otf::Tag;
 
         let bytes: &[u8]  = &[
             0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x6A, 0x00, 0x64, 0x00, 0x00,
@@ -366,11 +370,6 @@ named!(
             },
             _ => assert!(false)
         }
-        ```
-
-        Post Script Table version 2
-        ```
-        // TODO
         ```
     "],
     pub parse_post_script_table<&[u8],PostScriptTable>,
@@ -423,7 +422,7 @@ named!(parse_post_script_table_v2_0<&[u8],PostScriptTableV20>,
     )
 );
 
-/// Parse a list of Pascal Strings and store them into a Vec<&str>.
+/// Parse a list of Pascal Strings and store them into a vector of &str.
 ///
 /// See [https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed](https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed)
 ///
@@ -447,7 +446,7 @@ pub fn parse_pascal_strings(input: &[u8], length: usize) -> IResult<&[u8], Vec<&
     count!(input, map_res!(length_data!(be_u8), |s| str::from_utf8(s)), length)
 }
 
-/// Parse a list of Pascal Strings and store them into a Vec<String>.
+/// Parse a list of Pascal Strings and store them into a vector of String.
 ///
 /// See [https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed](https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed)
 ///

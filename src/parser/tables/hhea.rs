@@ -7,7 +7,7 @@ use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
 ///
 /// More information on ['hhea'](https://docs.microsoft.com/en-gb/typography/opentype/spec/hhea)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Hhea {
+pub struct HorizontalHeaderTable {
     ascender: i16,
     descender: i16,
     line_gap: i16,
@@ -22,7 +22,7 @@ pub struct Hhea {
     number_of_hmetrics: u16
 }
 
-impl Hhea {
+impl HorizontalHeaderTable {
     /// Distance from baseline of highest ascender.
     pub fn ascender(&self) -> i16 {
         self.ascender
@@ -87,37 +87,37 @@ impl Hhea {
 
 named!(
     #[doc="
-        Parse 'hhea' table.
+        Parse Horizontal Header Table.
 
         # Example
 
         ```
         extern crate opentype_rs as otf;
 
-        use otf::parser::tables::{Hhea, parse_hhea};
+        use otf::parser::tables::{HorizontalHeaderTable, parse_horizontal_header_table};
 
         let bytes: &[u8]  = &[
             0x00, 0x01, 0x00, 0x00, 0x07, 0x6C, 0xFE, 0x0C, 0x00, 0x00, 0x09, 0x49, 0xFA, 0x1B,
             0xFE, 0x4A, 0x09, 0x30, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0E];
 
-        let hhea_table = parse_hhea(bytes).unwrap().1;
+        let horizontal_header_table = parse_horizontal_header_table(bytes).unwrap().1;
 
-        assert_eq!(hhea_table.ascender(), 1900);
-        assert_eq!(hhea_table.descender(), -500);
-        assert_eq!(hhea_table.line_gap(), 0);
-        assert_eq!(hhea_table.advance_width_max(), 2377);
-        assert_eq!(hhea_table.min_left_side_bearing(), -1509);
-        assert_eq!(hhea_table.min_right_side_bearing(), -438);
-        assert_eq!(hhea_table.x_max_extent(), 2352);
-        assert_eq!(hhea_table.caret_slope_rise(), 1);
-        assert_eq!(hhea_table.caret_slope_run(), 0);
-        assert_eq!(hhea_table.caret_offset(), 0);
-        assert_eq!(hhea_table.metric_data_format(),  0);
-        assert_eq!(hhea_table.number_of_hmetrics(), 1294);
+        assert_eq!(horizontal_header_table.ascender(), 1900);
+        assert_eq!(horizontal_header_table.descender(), -500);
+        assert_eq!(horizontal_header_table.line_gap(), 0);
+        assert_eq!(horizontal_header_table.advance_width_max(), 2377);
+        assert_eq!(horizontal_header_table.min_left_side_bearing(), -1509);
+        assert_eq!(horizontal_header_table.min_right_side_bearing(), -438);
+        assert_eq!(horizontal_header_table.x_max_extent(), 2352);
+        assert_eq!(horizontal_header_table.caret_slope_rise(), 1);
+        assert_eq!(horizontal_header_table.caret_slope_run(), 0);
+        assert_eq!(horizontal_header_table.caret_offset(), 0);
+        assert_eq!(horizontal_header_table.metric_data_format(),  0);
+        assert_eq!(horizontal_header_table.number_of_hmetrics(), 1294);
         ```
     "],
-    pub parse_hhea<&[u8],Hhea>,
+    pub parse_horizontal_header_table<&[u8],HorizontalHeaderTable>,
     do_parse!(
         verify!(be_u16, |major_version| major_version == 1) >>
         verify!(be_u16, |minor_version| minor_version == 0) >>
@@ -135,7 +135,7 @@ named!(
         metric_data_format: be_i16 >>
         number_of_hmetrics: be_u16 >>
         (
-            Hhea{
+            HorizontalHeaderTable {
                 ascender,
                 descender,
                 line_gap,
@@ -163,6 +163,6 @@ mod tests {
         let bytes: &[u8] = &[];
 
         let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
-        assert_eq!(parse_hhea(bytes), expected);
+        assert_eq!(parse_horizontal_header_table(bytes), expected);
     }
 }

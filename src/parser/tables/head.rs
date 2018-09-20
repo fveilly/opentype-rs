@@ -9,7 +9,7 @@ use types::{Fixed, LongDateTime, Rect};
 ///
 /// More information on ['head'](https://docs.microsoft.com/en-gb/typography/opentype/spec/head)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct Head {
+pub struct FontHeaderTable {
     font_revision: Fixed,
     check_sum_adjustment: u32,
     flags: u16,
@@ -27,7 +27,7 @@ pub struct Head {
     glyph_data_format: i16
 }
 
-impl Head {
+impl FontHeaderTable {
     /// Set by font manufacturer
     pub fn font_revision(&self) -> Fixed {
         self.font_revision
@@ -121,14 +121,14 @@ impl Head {
 
 named!(
     #[doc="
-        Parse 'head' table.
+        Parse Font Header Table.
 
         # Example
 
         ```
         extern crate opentype_rs as otf;
 
-        use otf::parser::tables::{Head, parse_head};
+        use otf::parser::tables::{FontHeaderTable, parse_font_header_table};
         use otf::Rect;
 
         let bytes: &[u8]  = &[
@@ -137,23 +137,23 @@ named!(
             0x00, 0x00, 0x00, 0x00, 0xD5, 0x01, 0x52, 0xF4, 0xFA, 0x1B, 0xFD, 0xD5, 0x09, 0x30,
             0x08, 0x73, 0x00, 0x00, 0x00, 0x09, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00];
 
-        let head_table = parse_head(bytes).unwrap().1;
+        let font_header_table = parse_font_header_table(bytes).unwrap().1;
 
-        assert_eq!(head_table.font_revision(), 140050);
-        assert_eq!(head_table.check_sum_adjustment(), 2323607624);
-        assert_eq!(head_table.flags(), 25);
-        assert_eq!(head_table.units_per_em(), 2048);
-        assert_eq!(head_table.created(), 3304067374);
-        assert_eq!(head_table.modified(), 3573633780);
-        assert_eq!(head_table.bounding_box(), Rect::new(-1509, -555, 2352, 2163));
-        assert_eq!(head_table.mac_style(), 0);
-        assert_eq!(head_table.lowest_rec_ppem(), 9);
-        assert_eq!(head_table.font_direction_hint(), 2);
-        assert_eq!(head_table.index_to_loc_format(),  0);
-        assert_eq!(head_table.glyph_data_format(), 0);
+        assert_eq!(font_header_table.font_revision(), 140050);
+        assert_eq!(font_header_table.check_sum_adjustment(), 2323607624);
+        assert_eq!(font_header_table.flags(), 25);
+        assert_eq!(font_header_table.units_per_em(), 2048);
+        assert_eq!(font_header_table.created(), 3304067374);
+        assert_eq!(font_header_table.modified(), 3573633780);
+        assert_eq!(font_header_table.bounding_box(), Rect::new(-1509, -555, 2352, 2163));
+        assert_eq!(font_header_table.mac_style(), 0);
+        assert_eq!(font_header_table.lowest_rec_ppem(), 9);
+        assert_eq!(font_header_table.font_direction_hint(), 2);
+        assert_eq!(font_header_table.index_to_loc_format(),  0);
+        assert_eq!(font_header_table.glyph_data_format(), 0);
         ```
     "],
-    pub parse_head<&[u8],Head>,
+    pub parse_font_header_table<&[u8],FontHeaderTable>,
     do_parse!(
         verify!(be_u16, |major_version| major_version == 1) >>
         verify!(be_u16, |minor_version| minor_version == 0) >>
@@ -174,7 +174,7 @@ named!(
         index_to_loc_format: be_i16 >>
         glyph_data_format: be_i16 >>
         (
-            Head{
+            FontHeaderTable {
                 font_revision,
                 check_sum_adjustment,
                 flags,
@@ -201,15 +201,15 @@ mod tests {
     use nom::{Err, ErrorKind, Context, Needed};
 
     #[test]
-    fn case_head_invalid_empty_slice() {
+    fn case_font_header_table_invalid_empty_slice() {
         let bytes: &[u8]  = &[];
 
         let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
-        assert_eq!(parse_head(bytes),  expected);
+        assert_eq!(parse_font_header_table(bytes),  expected);
     }
 
     #[test]
-    fn case_head_invalid_magic_number() {
+    fn case_font_header_table_invalid_magic_number() {
         let bytes: &[u8]  = &[
             0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x23, 0x12, 0x8A, 0x7F, 0x70, 0x48, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x19, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC4, 0xF0, 0x11, 0x2E,
@@ -218,6 +218,6 @@ mod tests {
         ];
 
         let expected = Result::Err(Err::Error(Context::Code(&bytes[12..], ErrorKind::Verify)));
-        assert_eq!(parse_head(bytes),  expected);
+        assert_eq!(parse_font_header_table(bytes),  expected);
     }
 }
