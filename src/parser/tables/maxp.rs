@@ -8,36 +8,25 @@ use types::{Fixed, LongDateTime, Rect};
 ///
 /// More information on ['maxp'](https://docs.microsoft.com/en-gb/typography/opentype/spec/maxp)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum MaximumProfileTable {
-    Simple(MaximumProfileTableSimple),
-    Extended(MaximumProfileTableExtended)
+pub struct MaximumProfileTable {
+    num_glyphs: u16,
+    extension: Option<MaximumProfileTableExtension>
 }
 
 impl MaximumProfileTable {
     /// The number of glyphs in the font
     pub fn num_glyphs(&self) -> u16 {
-        match self {
-            MaximumProfileTable::Simple(maximum_profile_table) => maximum_profile_table.num_glyphs(),
-            MaximumProfileTable::Extended(maximum_profile_table) => maximum_profile_table.num_glyphs()
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct MaximumProfileTableSimple {
-    num_glyphs: u16
-}
-
-impl MaximumProfileTableSimple {
-    /// The number of glyphs in the font
-    pub fn num_glyphs(&self) -> u16 {
         self.num_glyphs
     }
+
+    /// Version 1.0 extension
+    pub fn extension(&self) -> Option<&MaximumProfileTableExtension> {
+        self.extension.as_ref()
+    }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct MaximumProfileTableExtended {
-    num_glyphs: u16,
+pub struct MaximumProfileTableExtension {
     max_points: u16,
     max_contours: u16,
     max_composite_points: u16,
@@ -53,12 +42,7 @@ pub struct MaximumProfileTableExtended {
     max_component_depth: u16
 }
 
-impl MaximumProfileTableExtended {
-    /// The number of glyphs in the font
-    pub fn num_glyphs(&self) -> u16 {
-        self.num_glyphs
-    }
-
+impl MaximumProfileTableExtension {
     /// Maximum points in a non-composite glyph
     pub fn max_points(&self) -> u16 {
         self.max_points
@@ -127,80 +111,24 @@ impl MaximumProfileTableExtended {
     }
 }
 
-named!(
-    #[doc="
-        Parse Maximum Profile Table.
-
-        # Example
-
-        Maximum Profile Table version 0.5
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::tables::{MaximumProfileTable, parse_maximum_profile_table};
-
-        let bytes: &[u8]  = &[
-            0x00, 0x00, 0x50, 0x00, 0x05, 0x0E];
-
-        let maximum_profile_table = parse_maximum_profile_table(bytes).unwrap().1;
-
-        match maximum_profile_table {
-            MaximumProfileTable::Simple(maximum_profile_table_simple) => assert_eq!(maximum_profile_table_simple.num_glyphs(), 1294),
-            _ => assert!(false)
-        }
-        ```
-
-        Maximum Profile Table version 1.0
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::tables::{MaximumProfileTable, parse_maximum_profile_table};
-
-        let bytes: &[u8]  = &[
-            0x00, 0x01, 0x00, 0x00, 0x05, 0x0E, 0x00, 0x8F, 0x00, 0x16, 0x00, 0x54, 0x00, 0x05,
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x02, 0x00, 0x02, 0x24,
-            0x00, 0x06, 0x00, 0x01];
-
-        let maximum_profile_table = parse_maximum_profile_table(bytes).unwrap().1;
-
-        match maximum_profile_table {
-            MaximumProfileTable::Extended(maximum_profile_table_extended) => {
-                assert_eq!(maximum_profile_table_extended.num_glyphs(), 1294);
-                assert_eq!(maximum_profile_table_extended.max_points(), 143);
-                assert_eq!(maximum_profile_table_extended.max_contours(), 22);
-                assert_eq!(maximum_profile_table_extended.max_composite_points(), 84);
-                assert_eq!(maximum_profile_table_extended.max_composite_contours(), 5);
-                assert_eq!(maximum_profile_table_extended.max_zones(), 1);
-                assert_eq!(maximum_profile_table_extended.max_twilight_points(), 0);
-                assert_eq!(maximum_profile_table_extended.max_storage(), 0);
-                assert_eq!(maximum_profile_table_extended.max_function_defs(), 14);
-                assert_eq!(maximum_profile_table_extended.max_instruction_defs(), 0);
-                assert_eq!(maximum_profile_table_extended.max_stack_elements(), 512);
-                assert_eq!(maximum_profile_table_extended.max_size_of_instructions(), 548);
-                assert_eq!(maximum_profile_table_extended.max_component_elements(), 6);
-                assert_eq!(maximum_profile_table_extended.max_component_depth(), 1);
-            },
-            _ => assert!(false)
-        }
-        ```
-    "],
-    pub parse_maximum_profile_table<&[u8],MaximumProfileTable>,
-    alt!(parse_maximum_profile_table_simple | parse_maximum_profile_table_extended)
+named!(pub parse_maximum_profile_table<&[u8],MaximumProfileTable>,
+    alt!(parse_maximum_profile_table_v0_5 | parse_maximum_profile_table_v1_0)
 );
 
-named!(parse_maximum_profile_table_simple<&[u8],MaximumProfileTable>,
+named!(parse_maximum_profile_table_v0_5<&[u8],MaximumProfileTable>,
     do_parse!(
         verify!(be_i32, |version| version == 0x00005000) >>
         num_glyphs: be_u16 >>
         (
-            MaximumProfileTable::Simple(MaximumProfileTableSimple {
-                num_glyphs
-            })
+            MaximumProfileTable {
+                num_glyphs,
+                extension: None
+            }
         )
     )
 );
 
-named!(parse_maximum_profile_table_extended<&[u8],MaximumProfileTable>,
+named!(parse_maximum_profile_table_v1_0<&[u8],MaximumProfileTable>,
     do_parse!(
         verify!(be_i32, |version| version == 0x00010000) >>
         num_glyphs: be_u16 >>
@@ -217,24 +145,28 @@ named!(parse_maximum_profile_table_extended<&[u8],MaximumProfileTable>,
         max_size_of_instructions: be_u16 >>
         max_component_elements: be_u16 >>
         max_component_depth: be_u16 >>
-        (
-            MaximumProfileTable::Extended(MaximumProfileTableExtended {
+        ({
+
+            MaximumProfileTable {
                 num_glyphs,
-                max_points,
-                max_contours,
-                max_composite_points,
-                max_composite_contours,
-                max_zones,
-                max_twilight_points,
-                max_storage,
-                max_function_defs,
-                max_instruction_defs,
-                max_stack_elements,
-                max_size_of_instructions,
-                max_component_elements,
-                max_component_depth
-            })
-        )
+                extension: Some(MaximumProfileTableExtension {
+                    max_points,
+                    max_contours,
+                    max_composite_points,
+                    max_composite_contours,
+                    max_zones,
+                    max_twilight_points,
+                    max_storage,
+                    max_function_defs,
+                    max_instruction_defs,
+                    max_stack_elements,
+                    max_size_of_instructions,
+                    max_component_elements,
+                    max_component_depth
+                })
+
+            }
+        })
     )
 );
 

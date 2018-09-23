@@ -50,41 +50,7 @@ impl TTCDigitalSignature {
     }
 }
 
-named!(
-    #[doc="
-        Parse TTC header.
-
-        # Example
-
-        TTC header version 1.0
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::{TTCHeader, parse_ttc_header};
-
-        let bytes: &[u8] = &[
-            0x74, 0x74, 0x63, 0x66, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00,
-            0x00, 0x2C, 0x00, 0x00, 0x01, 0x28, 0x00, 0x00, 0x02, 0x24, 0x00, 0x00, 0x03, 0x20,
-            0x00, 0x00, 0x04, 0x1C, 0x00, 0x00, 0x05, 0x18, 0x00, 0x00, 0x06, 0x14, 0x00, 0x00,
-            0x07, 0x10, 0x4F, 0x54, 0x54, 0x4F];
-
-        let ttc_header = parse_ttc_header(bytes).unwrap().1;
-
-        assert_eq!(ttc_header.num_fonts(), 8);
-        assert_eq!(ttc_header.offset_table(), &([44, 296, 548, 800, 1052, 1304, 1556, 1808] as [u32; 8]));
-        assert_eq!(ttc_header.dsig(), None);
-        ```
-
-        TTC header version 2.0
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::{TTCHeader, parse_ttc_header};
-
-        // TODO: Find a font
-        ```
-    "],
-    pub parse_ttc_header<&[u8],TTCHeader>,
+named!(pub parse_ttc_header<&[u8],TTCHeader>,
     preceded!(tag!("ttcf"), alt!(parse_ttc_header_v1 | parse_ttc_header_v2))
 );
 
@@ -140,6 +106,26 @@ mod tests {
     use super::*;
     use nom::{Err, ErrorKind, Context};
     use types::TableTag;
+
+    #[test]
+    fn case_ttc_header_v1_0() {
+        let bytes: &[u8] = &[
+            0x74, 0x74, 0x63, 0x66, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00,
+            0x00, 0x2C, 0x00, 0x00, 0x01, 0x28, 0x00, 0x00, 0x02, 0x24, 0x00, 0x00, 0x03, 0x20,
+            0x00, 0x00, 0x04, 0x1C, 0x00, 0x00, 0x05, 0x18, 0x00, 0x00, 0x06, 0x14, 0x00, 0x00,
+            0x07, 0x10, 0x4F, 0x54, 0x54, 0x4F];
+
+        let ttc_header = parse_ttc_header(bytes).unwrap().1;
+
+        assert_eq!(ttc_header.num_fonts(), 8);
+        assert_eq!(ttc_header.offset_table(), &([44, 296, 548, 800, 1052, 1304, 1556, 1808] as [u32; 8]));
+        assert_eq!(ttc_header.dsig(), None);
+    }
+
+    #[test]
+    fn case_ttc_header_v2_0() {
+        // TODO
+    }
 
     #[test]
     fn case_ttc_header_invalid_version() {

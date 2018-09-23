@@ -1,5 +1,6 @@
 use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
 use types::Tag;
+use std::ops;
 
 /// OS/2 and Windows Metrics Table
 ///
@@ -7,7 +8,328 @@ use types::Tag;
 ///
 /// More information on ['OS/2'](https://docs.microsoft.com/en-gb/typography/opentype/spec/os2)
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum Os2 {
+pub struct Os2 (Os2Version);
+
+impl Os2 {
+    pub fn version(&self) -> &Os2Version {
+        &self.0
+    }
+
+    /// See [x_avg_char_width](Os2V0.t.html#method.x_avg_char_width).
+    pub fn x_avg_char_width(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.x_avg_char_width(),
+            Os2Version::Version1(os2) => os2.x_avg_char_width(),
+            Os2Version::Version2(os2) => os2.x_avg_char_width(),
+            Os2Version::Version3(os2) => os2.x_avg_char_width(),
+            Os2Version::Version4(os2) => os2.x_avg_char_width(),
+            Os2Version::Version5(os2) => os2.x_avg_char_width(),
+        }
+    }
+
+    /// See [us_weight_class](Os2V0.t.html#method.us_weight_class).
+    pub fn us_weight_class(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.us_weight_class(),
+            Os2Version::Version1(os2) => os2.us_weight_class(),
+            Os2Version::Version2(os2) => os2.us_weight_class(),
+            Os2Version::Version3(os2) => os2.us_weight_class(),
+            Os2Version::Version4(os2) => os2.us_weight_class(),
+            Os2Version::Version5(os2) => os2.us_weight_class(),
+        }
+    }
+
+    /// See [us_width_class](Os2V0.t.html#method.us_width_class).
+    pub fn us_width_class(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.us_width_class(),
+            Os2Version::Version1(os2) => os2.us_width_class(),
+            Os2Version::Version2(os2) => os2.us_width_class(),
+            Os2Version::Version3(os2) => os2.us_width_class(),
+            Os2Version::Version4(os2) => os2.us_width_class(),
+            Os2Version::Version5(os2) => os2.us_width_class(),
+        }
+    }
+
+    /// See [fs_type](Os2V0.t.html#method.fs_type).
+    pub fn fs_type(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.fs_type(),
+            Os2Version::Version1(os2) => os2.fs_type(),
+            Os2Version::Version2(os2) => os2.fs_type(),
+            Os2Version::Version3(os2) => os2.fs_type(),
+            Os2Version::Version4(os2) => os2.fs_type(),
+            Os2Version::Version5(os2) => os2.fs_type(),
+        }
+    }
+
+    /// See [y_subscript_xsize](Os2V0.t.html#method.y_subscript_xsize).
+    pub fn y_subscript_xsize(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_subscript_xsize(),
+            Os2Version::Version1(os2) => os2.y_subscript_xsize(),
+            Os2Version::Version2(os2) => os2.y_subscript_xsize(),
+            Os2Version::Version3(os2) => os2.y_subscript_xsize(),
+            Os2Version::Version4(os2) => os2.y_subscript_xsize(),
+            Os2Version::Version5(os2) => os2.y_subscript_xsize(),
+        }
+    }
+
+    /// See [y_subscript_ysize](Os2V0.t.html#method.y_subscript_ysize).
+    pub fn y_subscript_ysize(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_subscript_ysize(),
+            Os2Version::Version1(os2) => os2.y_subscript_ysize(),
+            Os2Version::Version2(os2) => os2.y_subscript_ysize(),
+            Os2Version::Version3(os2) => os2.y_subscript_ysize(),
+            Os2Version::Version4(os2) => os2.y_subscript_ysize(),
+            Os2Version::Version5(os2) => os2.y_subscript_ysize(),
+        }
+    }
+
+    /// See [y_subscript_xoffset](Os2V0.t.html#method.y_subscript_xoffset).
+    pub fn y_subscript_xoffset(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_subscript_xoffset(),
+            Os2Version::Version1(os2) => os2.y_subscript_xoffset(),
+            Os2Version::Version2(os2) => os2.y_subscript_xoffset(),
+            Os2Version::Version3(os2) => os2.y_subscript_xoffset(),
+            Os2Version::Version4(os2) => os2.y_subscript_xoffset(),
+            Os2Version::Version5(os2) => os2.y_subscript_xoffset(),
+        }
+    }
+
+    /// See [y_subscript_yoffset](Os2V0.t.html#method.y_subscript_yoffset).
+    pub fn y_subscript_yoffset(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_subscript_yoffset(),
+            Os2Version::Version1(os2) => os2.y_subscript_yoffset(),
+            Os2Version::Version2(os2) => os2.y_subscript_yoffset(),
+            Os2Version::Version3(os2) => os2.y_subscript_yoffset(),
+            Os2Version::Version4(os2) => os2.y_subscript_yoffset(),
+            Os2Version::Version5(os2) => os2.y_subscript_yoffset(),
+        }
+    }
+
+    /// See [y_superscript_xsize](Os2V0.t.html#method.y_superscript_xsize).
+    pub fn y_superscript_xsize(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_superscript_xsize(),
+            Os2Version::Version1(os2) => os2.y_superscript_xsize(),
+            Os2Version::Version2(os2) => os2.y_superscript_xsize(),
+            Os2Version::Version3(os2) => os2.y_superscript_xsize(),
+            Os2Version::Version4(os2) => os2.y_superscript_xsize(),
+            Os2Version::Version5(os2) => os2.y_superscript_xsize(),
+        }
+    }
+
+    /// See [y_superscript_ysize](Os2V0.t.html#method.y_superscript_ysize).
+    pub fn y_superscript_ysize(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_superscript_ysize(),
+            Os2Version::Version1(os2) => os2.y_superscript_ysize(),
+            Os2Version::Version2(os2) => os2.y_superscript_ysize(),
+            Os2Version::Version3(os2) => os2.y_superscript_ysize(),
+            Os2Version::Version4(os2) => os2.y_superscript_ysize(),
+            Os2Version::Version5(os2) => os2.y_superscript_ysize(),
+        }
+    }
+
+    /// See [y_superscript_xoffset](Os2V0.t.html#method.y_superscript_xoffset).
+    pub fn y_superscript_xoffset(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_superscript_xoffset(),
+            Os2Version::Version1(os2) => os2.y_superscript_xoffset(),
+            Os2Version::Version2(os2) => os2.y_superscript_xoffset(),
+            Os2Version::Version3(os2) => os2.y_superscript_xoffset(),
+            Os2Version::Version4(os2) => os2.y_superscript_xoffset(),
+            Os2Version::Version5(os2) => os2.y_superscript_xoffset(),
+        }
+    }
+
+    /// See [y_superscript_yoffset](Os2V0.t.html#method.y_superscript_yoffset).
+    pub fn y_superscript_yoffset(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_superscript_yoffset(),
+            Os2Version::Version1(os2) => os2.y_superscript_yoffset(),
+            Os2Version::Version2(os2) => os2.y_superscript_yoffset(),
+            Os2Version::Version3(os2) => os2.y_superscript_yoffset(),
+            Os2Version::Version4(os2) => os2.y_superscript_yoffset(),
+            Os2Version::Version5(os2) => os2.y_superscript_yoffset(),
+        }
+    }
+
+    /// See [y_strikeout_size](Os2V0.t.html#method.y_strikeout_size).
+    pub fn y_strikeout_size(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_strikeout_size(),
+            Os2Version::Version1(os2) => os2.y_strikeout_size(),
+            Os2Version::Version2(os2) => os2.y_strikeout_size(),
+            Os2Version::Version3(os2) => os2.y_strikeout_size(),
+            Os2Version::Version4(os2) => os2.y_strikeout_size(),
+            Os2Version::Version5(os2) => os2.y_strikeout_size(),
+        }
+    }
+
+    /// See [y_strikeout_position](Os2V0.t.html#method.y_strikeout_position).
+    pub fn y_strikeout_position(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.y_strikeout_position(),
+            Os2Version::Version1(os2) => os2.y_strikeout_position(),
+            Os2Version::Version2(os2) => os2.y_strikeout_position(),
+            Os2Version::Version3(os2) => os2.y_strikeout_position(),
+            Os2Version::Version4(os2) => os2.y_strikeout_position(),
+            Os2Version::Version5(os2) => os2.y_strikeout_position(),
+        }
+    }
+
+    /// See [s_family_class](Os2V0.t.html#method.s_family_class).
+    pub fn s_family_class(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.s_family_class(),
+            Os2Version::Version1(os2) => os2.s_family_class(),
+            Os2Version::Version2(os2) => os2.s_family_class(),
+            Os2Version::Version3(os2) => os2.s_family_class(),
+            Os2Version::Version4(os2) => os2.s_family_class(),
+            Os2Version::Version5(os2) => os2.s_family_class(),
+        }
+    }
+
+    /// See [panose](Os2V0.t.html#method.panose).
+    pub fn panose(&self) -> &Panose {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.panose(),
+            Os2Version::Version1(os2) => os2.panose(),
+            Os2Version::Version2(os2) => os2.panose(),
+            Os2Version::Version3(os2) => os2.panose(),
+            Os2Version::Version4(os2) => os2.panose(),
+            Os2Version::Version5(os2) => os2.panose(),
+        }
+    }
+
+    /// See [ul_unicode_range](Os2V0.t.html#method.ul_unicode_range).
+    pub fn ul_unicode_range(&self) -> UnicodeRange {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.ul_unicode_range(),
+            Os2Version::Version1(os2) => os2.ul_unicode_range(),
+            Os2Version::Version2(os2) => os2.ul_unicode_range(),
+            Os2Version::Version3(os2) => os2.ul_unicode_range(),
+            Os2Version::Version4(os2) => os2.ul_unicode_range(),
+            Os2Version::Version5(os2) => os2.ul_unicode_range(),
+        }
+    }
+
+    /// See [ach_vend_id](Os2V0.t.html#method.ach_vend_id).
+    pub fn ach_vend_id(&self) -> Tag {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.ach_vend_id(),
+            Os2Version::Version1(os2) => os2.ach_vend_id(),
+            Os2Version::Version2(os2) => os2.ach_vend_id(),
+            Os2Version::Version3(os2) => os2.ach_vend_id(),
+            Os2Version::Version4(os2) => os2.ach_vend_id(),
+            Os2Version::Version5(os2) => os2.ach_vend_id(),
+        }
+    }
+
+    /// See [fs_selection](Os2V0.t.html#method.fs_selection).
+    pub fn fs_selection(&self) -> FontSelectionFlags {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.fs_selection(),
+            Os2Version::Version1(os2) => os2.fs_selection(),
+            Os2Version::Version2(os2) => os2.fs_selection(),
+            Os2Version::Version3(os2) => os2.fs_selection(),
+            Os2Version::Version4(os2) => os2.fs_selection(),
+            Os2Version::Version5(os2) => os2.fs_selection(),
+        }
+    }
+
+    /// See [us_first_char_index](Os2V0.t.html#method.us_first_char_index).
+    pub fn us_first_char_index(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.us_first_char_index(),
+            Os2Version::Version1(os2) => os2.us_first_char_index(),
+            Os2Version::Version2(os2) => os2.us_first_char_index(),
+            Os2Version::Version3(os2) => os2.us_first_char_index(),
+            Os2Version::Version4(os2) => os2.us_first_char_index(),
+            Os2Version::Version5(os2) => os2.us_first_char_index(),
+        }
+    }
+
+    /// See [us_last_char_index](Os2V0.t.html#method.us_last_char_index).
+    pub fn us_last_char_index(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.us_last_char_index(),
+            Os2Version::Version1(os2) => os2.us_last_char_index(),
+            Os2Version::Version2(os2) => os2.us_last_char_index(),
+            Os2Version::Version3(os2) => os2.us_last_char_index(),
+            Os2Version::Version4(os2) => os2.us_last_char_index(),
+            Os2Version::Version5(os2) => os2.us_last_char_index(),
+        }
+    }
+
+    /// See [s_typo_ascender](Os2V0.t.html#method.s_typo_ascender).
+    pub fn s_typo_ascender(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.s_typo_ascender(),
+            Os2Version::Version1(os2) => os2.s_typo_ascender(),
+            Os2Version::Version2(os2) => os2.s_typo_ascender(),
+            Os2Version::Version3(os2) => os2.s_typo_ascender(),
+            Os2Version::Version4(os2) => os2.s_typo_ascender(),
+            Os2Version::Version5(os2) => os2.s_typo_ascender(),
+        }
+    }
+
+    /// See [s_typo_descender](Os2V0.t.html#method.s_typo_descender).
+    pub fn s_typo_descender(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.s_typo_descender(),
+            Os2Version::Version1(os2) => os2.s_typo_descender(),
+            Os2Version::Version2(os2) => os2.s_typo_descender(),
+            Os2Version::Version3(os2) => os2.s_typo_descender(),
+            Os2Version::Version4(os2) => os2.s_typo_descender(),
+            Os2Version::Version5(os2) => os2.s_typo_descender(),
+        }
+    }
+
+    /// See [s_typo_line_gap](Os2V0.t.html#method.s_typo_line_gap).
+    pub fn s_typo_line_gap(&self) -> i16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.s_typo_line_gap(),
+            Os2Version::Version1(os2) => os2.s_typo_line_gap(),
+            Os2Version::Version2(os2) => os2.s_typo_line_gap(),
+            Os2Version::Version3(os2) => os2.s_typo_line_gap(),
+            Os2Version::Version4(os2) => os2.s_typo_line_gap(),
+            Os2Version::Version5(os2) => os2.s_typo_line_gap(),
+        }
+    }
+
+    /// See [us_win_ascent](Os2V0.t.html#method.us_win_ascent).
+    pub fn us_win_ascent(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.us_win_ascent(),
+            Os2Version::Version1(os2) => os2.us_win_ascent(),
+            Os2Version::Version2(os2) => os2.us_win_ascent(),
+            Os2Version::Version3(os2) => os2.us_win_ascent(),
+            Os2Version::Version4(os2) => os2.us_win_ascent(),
+            Os2Version::Version5(os2) => os2.us_win_ascent(),
+        }
+    }
+
+    /// See [us_win_descent](Os2V0.t.html#method.us_win_descent).
+    pub fn us_win_descent(&self) -> u16 {
+        match &self.0 {
+            Os2Version::Version0(os2) => os2.us_win_descent(),
+            Os2Version::Version1(os2) => os2.us_win_descent(),
+            Os2Version::Version2(os2) => os2.us_win_descent(),
+            Os2Version::Version3(os2) => os2.us_win_descent(),
+            Os2Version::Version4(os2) => os2.us_win_descent(),
+            Os2Version::Version5(os2) => os2.us_win_descent(),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum Os2Version {
     /// Version 0 was defined in TrueType revision 1.5.
     Version0(Os2V0),
     /// Version 1 was defined in TrueType revision 1.66. Version 1 has five fewer fields than
@@ -29,320 +351,6 @@ pub enum Os2 {
     /// Version 5 was defined in OpenType 1.7. Version 5 has two additional fields beyond those
     /// in version 4.
     Version5(Os2V5)
-}
-
-impl Os2 {
-    /// See [x_avg_char_width](Os2V0.t.html#method.x_avg_char_width).
-    pub fn x_avg_char_width(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.x_avg_char_width(),
-            Os2::Version1(os2) => os2.x_avg_char_width(),
-            Os2::Version2(os2) => os2.x_avg_char_width(),
-            Os2::Version3(os2) => os2.x_avg_char_width(),
-            Os2::Version4(os2) => os2.x_avg_char_width(),
-            Os2::Version5(os2) => os2.x_avg_char_width(),
-        }
-    }
-
-    /// See [us_weight_class](Os2V0.t.html#method.us_weight_class).
-    pub fn us_weight_class(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.us_weight_class(),
-            Os2::Version1(os2) => os2.us_weight_class(),
-            Os2::Version2(os2) => os2.us_weight_class(),
-            Os2::Version3(os2) => os2.us_weight_class(),
-            Os2::Version4(os2) => os2.us_weight_class(),
-            Os2::Version5(os2) => os2.us_weight_class(),
-        }
-    }
-
-    /// See [us_width_class](Os2V0.t.html#method.us_width_class).
-    pub fn us_width_class(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.us_width_class(),
-            Os2::Version1(os2) => os2.us_width_class(),
-            Os2::Version2(os2) => os2.us_width_class(),
-            Os2::Version3(os2) => os2.us_width_class(),
-            Os2::Version4(os2) => os2.us_width_class(),
-            Os2::Version5(os2) => os2.us_width_class(),
-        }
-    }
-
-    /// See [fs_type](Os2V0.t.html#method.fs_type).
-    pub fn fs_type(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.fs_type(),
-            Os2::Version1(os2) => os2.fs_type(),
-            Os2::Version2(os2) => os2.fs_type(),
-            Os2::Version3(os2) => os2.fs_type(),
-            Os2::Version4(os2) => os2.fs_type(),
-            Os2::Version5(os2) => os2.fs_type(),
-        }
-    }
-
-    /// See [y_subscript_xsize](Os2V0.t.html#method.y_subscript_xsize).
-    pub fn y_subscript_xsize(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_subscript_xsize(),
-            Os2::Version1(os2) => os2.y_subscript_xsize(),
-            Os2::Version2(os2) => os2.y_subscript_xsize(),
-            Os2::Version3(os2) => os2.y_subscript_xsize(),
-            Os2::Version4(os2) => os2.y_subscript_xsize(),
-            Os2::Version5(os2) => os2.y_subscript_xsize(),
-        }
-    }
-
-    /// See [y_subscript_ysize](Os2V0.t.html#method.y_subscript_ysize).
-    pub fn y_subscript_ysize(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_subscript_ysize(),
-            Os2::Version1(os2) => os2.y_subscript_ysize(),
-            Os2::Version2(os2) => os2.y_subscript_ysize(),
-            Os2::Version3(os2) => os2.y_subscript_ysize(),
-            Os2::Version4(os2) => os2.y_subscript_ysize(),
-            Os2::Version5(os2) => os2.y_subscript_ysize(),
-        }
-    }
-
-    /// See [y_subscript_xoffset](Os2V0.t.html#method.y_subscript_xoffset).
-    pub fn y_subscript_xoffset(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_subscript_xoffset(),
-            Os2::Version1(os2) => os2.y_subscript_xoffset(),
-            Os2::Version2(os2) => os2.y_subscript_xoffset(),
-            Os2::Version3(os2) => os2.y_subscript_xoffset(),
-            Os2::Version4(os2) => os2.y_subscript_xoffset(),
-            Os2::Version5(os2) => os2.y_subscript_xoffset(),
-        }
-    }
-
-    /// See [y_subscript_yoffset](Os2V0.t.html#method.y_subscript_yoffset).
-    pub fn y_subscript_yoffset(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_subscript_yoffset(),
-            Os2::Version1(os2) => os2.y_subscript_yoffset(),
-            Os2::Version2(os2) => os2.y_subscript_yoffset(),
-            Os2::Version3(os2) => os2.y_subscript_yoffset(),
-            Os2::Version4(os2) => os2.y_subscript_yoffset(),
-            Os2::Version5(os2) => os2.y_subscript_yoffset(),
-        }
-    }
-
-    /// See [y_superscript_xsize](Os2V0.t.html#method.y_superscript_xsize).
-    pub fn y_superscript_xsize(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_superscript_xsize(),
-            Os2::Version1(os2) => os2.y_superscript_xsize(),
-            Os2::Version2(os2) => os2.y_superscript_xsize(),
-            Os2::Version3(os2) => os2.y_superscript_xsize(),
-            Os2::Version4(os2) => os2.y_superscript_xsize(),
-            Os2::Version5(os2) => os2.y_superscript_xsize(),
-        }
-    }
-
-    /// See [y_superscript_ysize](Os2V0.t.html#method.y_superscript_ysize).
-    pub fn y_superscript_ysize(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_superscript_ysize(),
-            Os2::Version1(os2) => os2.y_superscript_ysize(),
-            Os2::Version2(os2) => os2.y_superscript_ysize(),
-            Os2::Version3(os2) => os2.y_superscript_ysize(),
-            Os2::Version4(os2) => os2.y_superscript_ysize(),
-            Os2::Version5(os2) => os2.y_superscript_ysize(),
-        }
-    }
-
-    /// See [y_superscript_xoffset](Os2V0.t.html#method.y_superscript_xoffset).
-    pub fn y_superscript_xoffset(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_superscript_xoffset(),
-            Os2::Version1(os2) => os2.y_superscript_xoffset(),
-            Os2::Version2(os2) => os2.y_superscript_xoffset(),
-            Os2::Version3(os2) => os2.y_superscript_xoffset(),
-            Os2::Version4(os2) => os2.y_superscript_xoffset(),
-            Os2::Version5(os2) => os2.y_superscript_xoffset(),
-        }
-    }
-
-    /// See [y_superscript_yoffset](Os2V0.t.html#method.y_superscript_yoffset).
-    pub fn y_superscript_yoffset(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_superscript_yoffset(),
-            Os2::Version1(os2) => os2.y_superscript_yoffset(),
-            Os2::Version2(os2) => os2.y_superscript_yoffset(),
-            Os2::Version3(os2) => os2.y_superscript_yoffset(),
-            Os2::Version4(os2) => os2.y_superscript_yoffset(),
-            Os2::Version5(os2) => os2.y_superscript_yoffset(),
-        }
-    }
-
-    /// See [y_strikeout_size](Os2V0.t.html#method.y_strikeout_size).
-    pub fn y_strikeout_size(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_strikeout_size(),
-            Os2::Version1(os2) => os2.y_strikeout_size(),
-            Os2::Version2(os2) => os2.y_strikeout_size(),
-            Os2::Version3(os2) => os2.y_strikeout_size(),
-            Os2::Version4(os2) => os2.y_strikeout_size(),
-            Os2::Version5(os2) => os2.y_strikeout_size(),
-        }
-    }
-
-    /// See [y_strikeout_position](Os2V0.t.html#method.y_strikeout_position).
-    pub fn y_strikeout_position(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.y_strikeout_position(),
-            Os2::Version1(os2) => os2.y_strikeout_position(),
-            Os2::Version2(os2) => os2.y_strikeout_position(),
-            Os2::Version3(os2) => os2.y_strikeout_position(),
-            Os2::Version4(os2) => os2.y_strikeout_position(),
-            Os2::Version5(os2) => os2.y_strikeout_position(),
-        }
-    }
-
-    /// See [s_family_class](Os2V0.t.html#method.s_family_class).
-    pub fn s_family_class(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.s_family_class(),
-            Os2::Version1(os2) => os2.s_family_class(),
-            Os2::Version2(os2) => os2.s_family_class(),
-            Os2::Version3(os2) => os2.s_family_class(),
-            Os2::Version4(os2) => os2.s_family_class(),
-            Os2::Version5(os2) => os2.s_family_class(),
-        }
-    }
-
-    /// See [panose](Os2V0.t.html#method.panose).
-    pub fn panose(&self) -> &Panose {
-        match self {
-            Os2::Version0(os2) => os2.panose(),
-            Os2::Version1(os2) => os2.panose(),
-            Os2::Version2(os2) => os2.panose(),
-            Os2::Version3(os2) => os2.panose(),
-            Os2::Version4(os2) => os2.panose(),
-            Os2::Version5(os2) => os2.panose(),
-        }
-    }
-
-    /// See [ul_unicode_range](Os2V0.t.html#method.ul_unicode_range).
-    pub fn ul_unicode_range(&self) -> UnicodeRange {
-        match self {
-            Os2::Version0(os2) => os2.ul_unicode_range(),
-            Os2::Version1(os2) => os2.ul_unicode_range(),
-            Os2::Version2(os2) => os2.ul_unicode_range(),
-            Os2::Version3(os2) => os2.ul_unicode_range(),
-            Os2::Version4(os2) => os2.ul_unicode_range(),
-            Os2::Version5(os2) => os2.ul_unicode_range(),
-        }
-    }
-
-    /// See [ach_vend_id](Os2V0.t.html#method.ach_vend_id).
-    pub fn ach_vend_id(&self) -> Tag {
-        match self {
-            Os2::Version0(os2) => os2.ach_vend_id(),
-            Os2::Version1(os2) => os2.ach_vend_id(),
-            Os2::Version2(os2) => os2.ach_vend_id(),
-            Os2::Version3(os2) => os2.ach_vend_id(),
-            Os2::Version4(os2) => os2.ach_vend_id(),
-            Os2::Version5(os2) => os2.ach_vend_id(),
-        }
-    }
-
-    /// See [fs_selection](Os2V0.t.html#method.fs_selection).
-    pub fn fs_selection(&self) -> FontSelectionFlags {
-        match self {
-            Os2::Version0(os2) => os2.fs_selection(),
-            Os2::Version1(os2) => os2.fs_selection(),
-            Os2::Version2(os2) => os2.fs_selection(),
-            Os2::Version3(os2) => os2.fs_selection(),
-            Os2::Version4(os2) => os2.fs_selection(),
-            Os2::Version5(os2) => os2.fs_selection(),
-        }
-    }
-
-    /// See [us_first_char_index](Os2V0.t.html#method.us_first_char_index).
-    pub fn us_first_char_index(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.us_first_char_index(),
-            Os2::Version1(os2) => os2.us_first_char_index(),
-            Os2::Version2(os2) => os2.us_first_char_index(),
-            Os2::Version3(os2) => os2.us_first_char_index(),
-            Os2::Version4(os2) => os2.us_first_char_index(),
-            Os2::Version5(os2) => os2.us_first_char_index(),
-        }
-    }
-
-    /// See [us_last_char_index](Os2V0.t.html#method.us_last_char_index).
-    pub fn us_last_char_index(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.us_last_char_index(),
-            Os2::Version1(os2) => os2.us_last_char_index(),
-            Os2::Version2(os2) => os2.us_last_char_index(),
-            Os2::Version3(os2) => os2.us_last_char_index(),
-            Os2::Version4(os2) => os2.us_last_char_index(),
-            Os2::Version5(os2) => os2.us_last_char_index(),
-        }
-    }
-
-    /// See [s_typo_ascender](Os2V0.t.html#method.s_typo_ascender).
-    pub fn s_typo_ascender(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.s_typo_ascender(),
-            Os2::Version1(os2) => os2.s_typo_ascender(),
-            Os2::Version2(os2) => os2.s_typo_ascender(),
-            Os2::Version3(os2) => os2.s_typo_ascender(),
-            Os2::Version4(os2) => os2.s_typo_ascender(),
-            Os2::Version5(os2) => os2.s_typo_ascender(),
-        }
-    }
-
-    /// See [s_typo_descender](Os2V0.t.html#method.s_typo_descender).
-    pub fn s_typo_descender(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.s_typo_descender(),
-            Os2::Version1(os2) => os2.s_typo_descender(),
-            Os2::Version2(os2) => os2.s_typo_descender(),
-            Os2::Version3(os2) => os2.s_typo_descender(),
-            Os2::Version4(os2) => os2.s_typo_descender(),
-            Os2::Version5(os2) => os2.s_typo_descender(),
-        }
-    }
-
-    /// See [s_typo_line_gap](Os2V0.t.html#method.s_typo_line_gap).
-    pub fn s_typo_line_gap(&self) -> i16 {
-        match self {
-            Os2::Version0(os2) => os2.s_typo_line_gap(),
-            Os2::Version1(os2) => os2.s_typo_line_gap(),
-            Os2::Version2(os2) => os2.s_typo_line_gap(),
-            Os2::Version3(os2) => os2.s_typo_line_gap(),
-            Os2::Version4(os2) => os2.s_typo_line_gap(),
-            Os2::Version5(os2) => os2.s_typo_line_gap(),
-        }
-    }
-
-    /// See [us_win_ascent](Os2V0.t.html#method.us_win_ascent).
-    pub fn us_win_ascent(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.us_win_ascent(),
-            Os2::Version1(os2) => os2.us_win_ascent(),
-            Os2::Version2(os2) => os2.us_win_ascent(),
-            Os2::Version3(os2) => os2.us_win_ascent(),
-            Os2::Version4(os2) => os2.us_win_ascent(),
-            Os2::Version5(os2) => os2.us_win_ascent(),
-        }
-    }
-
-    /// See [us_win_descent](Os2V0.t.html#method.us_win_descent).
-    pub fn us_win_descent(&self) -> u16 {
-        match self {
-            Os2::Version0(os2) => os2.us_win_descent(),
-            Os2::Version1(os2) => os2.us_win_descent(),
-            Os2::Version2(os2) => os2.us_win_descent(),
-            Os2::Version3(os2) => os2.us_win_descent(),
-            Os2::Version4(os2) => os2.us_win_descent(),
-            Os2::Version5(os2) => os2.us_win_descent(),
-        }
-    }
 }
 
 /// Unicode Character Range
@@ -1445,162 +1453,6 @@ pub struct Os2V1 {
 }
 
 impl Os2V1 {
-    /// See [x_avg_char_width](Os2V0.t.html#method.x_avg_char_width).
-    #[inline]
-    pub fn x_avg_char_width(&self) -> i16 {
-        self.os2_v0.x_avg_char_width()
-    }
-
-    /// See [us_weight_class](Os2V0.t.html#method.us_weight_class).
-    #[inline]
-    pub fn us_weight_class(&self) -> u16 {
-        self.os2_v0.us_weight_class()
-    }
-
-    /// See [us_width_class](Os2V0.t.html#method.us_width_class).
-    #[inline]
-    pub fn us_width_class(&self) -> u16 {
-        self.os2_v0.us_width_class()
-    }
-
-    /// See [fs_type](Os2V0.t.html#method.fs_type).
-    #[inline]
-    pub fn fs_type(&self) -> u16 {
-        self.os2_v0.fs_type()
-    }
-
-    /// See [y_subscript_xsize](Os2V0.t.html#method.y_subscript_xsize).
-    #[inline]
-    pub fn y_subscript_xsize(&self) -> i16 {
-        self.os2_v0.y_subscript_xsize()
-    }
-
-    /// See [y_subscript_ysize](Os2V0.t.html#method.y_subscript_ysize).
-    #[inline]
-    pub fn y_subscript_ysize(&self) -> i16 {
-        self.os2_v0.y_subscript_ysize()
-    }
-
-    /// See [y_subscript_xoffset](Os2V0.t.html#method.y_subscript_xoffset).
-    #[inline]
-    pub fn y_subscript_xoffset(&self) -> i16 {
-        self.os2_v0.y_subscript_xoffset()
-    }
-
-    /// See [y_subscript_yoffset](Os2V0.t.html#method.y_subscript_yoffset).
-    #[inline]
-    pub fn y_subscript_yoffset(&self) -> i16 {
-        self.os2_v0.y_subscript_yoffset()
-    }
-
-    /// See [y_superscript_xsize](Os2V0.t.html#method.y_superscript_xsize).
-    #[inline]
-    pub fn y_superscript_xsize(&self) -> i16 {
-        self.os2_v0.y_superscript_xsize()
-    }
-
-    /// See [y_superscript_ysize](Os2V0.t.html#method.y_superscript_ysize).
-    #[inline]
-    pub fn y_superscript_ysize(&self) -> i16 {
-        self.os2_v0.y_superscript_ysize()
-    }
-
-    /// See [y_superscript_xoffset](Os2V0.t.html#method.y_superscript_xoffset).
-    #[inline]
-    pub fn y_superscript_xoffset(&self) -> i16 {
-        self.os2_v0.y_superscript_xoffset()
-    }
-
-    /// See [y_superscript_yoffset](Os2V0.t.html#method.y_superscript_yoffset).
-    #[inline]
-    pub fn y_superscript_yoffset(&self) -> i16 {
-        self.os2_v0.y_superscript_yoffset()
-    }
-
-    /// See [y_strikeout_size](Os2V0.t.html#method.y_strikeout_size).
-    #[inline]
-    pub fn y_strikeout_size(&self) -> i16 {
-        self.os2_v0.y_strikeout_size()
-    }
-
-    /// See [y_strikeout_position](Os2V0.t.html#method.y_strikeout_position).
-    #[inline]
-    pub fn y_strikeout_position(&self) -> i16 {
-        self.os2_v0.y_strikeout_position()
-    }
-
-    /// See [s_family_class](Os2V0.t.html#method.s_family_class).
-    #[inline]
-    pub fn s_family_class(&self) -> i16 {
-        self.os2_v0.s_family_class()
-    }
-
-    /// See [panose](Os2V0.t.html#method.panose).
-    #[inline]
-    pub fn panose(&self) -> &Panose {
-        self.os2_v0.panose()
-    }
-
-    /// See [ul_unicode_range](Os2V0.t.html#method.ul_unicode_range).
-    #[inline]
-    pub fn ul_unicode_range(&self) -> UnicodeRange {
-        self.os2_v0.ul_unicode_range()
-    }
-
-    /// See [ach_vend_id](Os2V0.t.html#method.ach_vend_id).
-    #[inline]
-    pub fn ach_vend_id(&self) -> Tag {
-        self.os2_v0.ach_vend_id()
-    }
-
-    /// See [fs_selection](Os2V0.t.html#method.fs_selection).
-    #[inline]
-    pub fn fs_selection(&self) -> FontSelectionFlags {
-        self.os2_v0.fs_selection()
-    }
-
-    /// See [us_first_char_index](Os2V0.t.html#method.us_first_char_index).
-    #[inline]
-    pub fn us_first_char_index(&self) -> u16 {
-        self.os2_v0.us_first_char_index()
-    }
-
-    /// See [us_last_char_index](Os2V0.t.html#method.us_last_char_index).
-    #[inline]
-    pub fn us_last_char_index(&self) -> u16 {
-        self.os2_v0.us_last_char_index()
-    }
-
-    /// See [s_typo_ascender](Os2V0.t.html#method.s_typo_ascender).
-    #[inline]
-    pub fn s_typo_ascender(&self) -> i16 {
-        self.os2_v0.s_typo_ascender()
-    }
-
-    /// See [s_typo_descender](Os2V0.t.html#method.s_typo_descender).
-    #[inline]
-    pub fn s_typo_descender(&self) -> i16 {
-        self.os2_v0.s_typo_descender()
-    }
-
-    /// See [s_typo_line_gap](Os2V0.t.html#method.s_typo_line_gap).
-    #[inline]
-    pub fn s_typo_line_gap(&self) -> i16 {
-        self.os2_v0.s_typo_line_gap()
-    }
-
-    /// See [us_win_ascent](Os2V0.t.html#method.us_win_ascent).
-    #[inline]
-    pub fn us_win_ascent(&self) -> u16 {
-        self.os2_v0.us_win_ascent()
-    }
-
-    /// See [us_win_descent](Os2V0.t.html#method.us_win_descent).
-    #[inline]
-    pub fn us_win_descent(&self) -> u16 {
-        self.os2_v0.us_win_descent()
-    }
-
     /// Code Page Character Range
     ///
     /// This field is used to specify the code pages encompassed by the font file in the 'cmap'
@@ -1624,6 +1476,13 @@ impl Os2V1 {
     }
 }
 
+impl ops::Deref for Os2V1 {
+    type Target = Os2V0;
+    fn deref(&self) -> &Self::Target {
+        &self.os2_v0
+    }
+}
+
 /// Version 4 was defined in OpenType 1.5. Version 4 has two fewer fields than version 5, and the
 /// same fields as in version 3. Although new fields were not added beyond those in version 3, the
 /// specification of certain fields was revised.
@@ -1638,168 +1497,6 @@ pub struct Os2V4 {
 }
 
 impl Os2V4 {
-    /// See [x_avg_char_width](Os2V0.t.html#method.x_avg_char_width).
-    #[inline]
-    pub fn x_avg_char_width(&self) -> i16 {
-        self.os2_v1.x_avg_char_width()
-    }
-
-    /// See [us_weight_class](Os2V0.t.html#method.us_weight_class).
-    #[inline]
-    pub fn us_weight_class(&self) -> u16 {
-        self.os2_v1.us_weight_class()
-    }
-
-    /// See [us_width_class](Os2V0.t.html#method.us_width_class).
-    #[inline]
-    pub fn us_width_class(&self) -> u16 {
-        self.os2_v1.us_width_class()
-    }
-
-    /// See [fs_type](Os2V0.t.html#method.fs_type).
-    #[inline]
-    pub fn fs_type(&self) -> u16 {
-        self.os2_v1.fs_type()
-    }
-
-    /// See [y_subscript_xsize](Os2V0.t.html#method.y_subscript_xsize).
-    #[inline]
-    pub fn y_subscript_xsize(&self) -> i16 {
-        self.os2_v1.y_subscript_xsize()
-    }
-
-    /// See [y_subscript_ysize](Os2V0.t.html#method.y_subscript_ysize).
-    #[inline]
-    pub fn y_subscript_ysize(&self) -> i16 {
-        self.os2_v1.y_subscript_ysize()
-    }
-
-    /// See [y_subscript_xoffset](Os2V0.t.html#method.y_subscript_xoffset).
-    #[inline]
-    pub fn y_subscript_xoffset(&self) -> i16 {
-        self.os2_v1.y_subscript_xoffset()
-    }
-
-    /// See [y_subscript_yoffset](Os2V0.t.html#method.y_subscript_yoffset).
-    #[inline]
-    pub fn y_subscript_yoffset(&self) -> i16 {
-        self.os2_v1.y_subscript_yoffset()
-    }
-
-    /// See [y_superscript_xsize](Os2V0.t.html#method.y_superscript_xsize).
-    #[inline]
-    pub fn y_superscript_xsize(&self) -> i16 {
-        self.os2_v1.y_superscript_xsize()
-    }
-
-    /// See [y_superscript_ysize](Os2V0.t.html#method.y_superscript_ysize).
-    #[inline]
-    pub fn y_superscript_ysize(&self) -> i16 {
-        self.os2_v1.y_superscript_ysize()
-    }
-
-    /// See [y_superscript_xoffset](Os2V0.t.html#method.y_superscript_xoffset).
-    #[inline]
-    pub fn y_superscript_xoffset(&self) -> i16 {
-        self.os2_v1.y_superscript_xoffset()
-    }
-
-    /// See [y_superscript_yoffset](Os2V0.t.html#method.y_superscript_yoffset).
-    #[inline]
-    pub fn y_superscript_yoffset(&self) -> i16 {
-        self.os2_v1.y_superscript_yoffset()
-    }
-
-    /// See [y_strikeout_size](Os2V0.t.html#method.y_strikeout_size).
-    #[inline]
-    pub fn y_strikeout_size(&self) -> i16 {
-        self.os2_v1.y_strikeout_size()
-    }
-
-    /// See [y_strikeout_position](Os2V0.t.html#method.y_strikeout_position).
-    #[inline]
-    pub fn y_strikeout_position(&self) -> i16 {
-        self.os2_v1.y_strikeout_position()
-    }
-
-    /// See [s_family_class](Os2V0.t.html#method.s_family_class).
-    #[inline]
-    pub fn s_family_class(&self) -> i16 {
-        self.os2_v1.s_family_class()
-    }
-
-    /// See [panose](Os2V0.t.html#method.panose).
-    #[inline]
-    pub fn panose(&self) -> &Panose {
-        self.os2_v1.panose()
-    }
-
-    /// See [ul_unicode_range](Os2V0.t.html#method.ul_unicode_range).
-    #[inline]
-    pub fn ul_unicode_range(&self) -> UnicodeRange {
-        self.os2_v1.ul_unicode_range()
-    }
-
-    /// See [ach_vend_id](Os2V0.t.html#method.ach_vend_id).
-    #[inline]
-    pub fn ach_vend_id(&self) -> Tag {
-        self.os2_v1.ach_vend_id()
-    }
-
-    /// See [fs_selection](Os2V0.t.html#method.fs_selection).
-    #[inline]
-    pub fn fs_selection(&self) -> FontSelectionFlags {
-        self.os2_v1.fs_selection()
-    }
-
-    /// See [us_first_char_index](Os2V0.t.html#method.us_first_char_index).
-    #[inline]
-    pub fn us_first_char_index(&self) -> u16 {
-        self.os2_v1.us_first_char_index()
-    }
-
-    /// See [us_last_char_index](Os2V0.t.html#method.us_last_char_index).
-    #[inline]
-    pub fn us_last_char_index(&self) -> u16 {
-        self.os2_v1.us_last_char_index()
-    }
-
-    /// See [s_typo_ascender](Os2V0.t.html#method.s_typo_ascender).
-    #[inline]
-    pub fn s_typo_ascender(&self) -> i16 {
-        self.os2_v1.s_typo_ascender()
-    }
-
-    /// See [s_typo_descender](Os2V0.t.html#method.s_typo_descender).
-    #[inline]
-    pub fn s_typo_descender(&self) -> i16 {
-        self.os2_v1.s_typo_descender()
-    }
-
-    /// See [s_typo_line_gap](Os2V0.t.html#method.s_typo_line_gap).
-    #[inline]
-    pub fn s_typo_line_gap(&self) -> i16 {
-        self.os2_v1.s_typo_line_gap()
-    }
-
-    /// See [us_win_ascent](Os2V0.t.html#method.us_win_ascent).
-    #[inline]
-    pub fn us_win_ascent(&self) -> u16 {
-        self.os2_v1.us_win_ascent()
-    }
-
-    /// See [us_win_descent](Os2V0.t.html#method.us_win_descent).
-    #[inline]
-    pub fn us_win_descent(&self) -> u16 {
-        self.os2_v1.us_win_descent()
-    }
-
-    /// See [ul_code_page_range](Os2V1.t.html#method.ul_code_page_range).
-    #[inline]
-    pub fn ul_code_page_range(&self) -> CodePageRange {
-        self.os2_v1.ul_code_page_range()
-    }
-
     /// This metric specifies the distance between the baseline and the approximate height of
     /// non-ascending lowercase letters measured in FUnits. This value would normally be specified
     /// by a type designer but in situations where that is not possible, for example when a legacy
@@ -1898,6 +1595,13 @@ impl Os2V4 {
     }
 }
 
+impl ops::Deref for Os2V4 {
+    type Target = Os2V1;
+    fn deref(&self) -> &Self::Target {
+        &self.os2_v1
+    }
+}
+
 /// Version 5 was defined in OpenType 1.7. Version 5 has two additional fields beyond those in
 /// version 4.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -1908,198 +1612,6 @@ pub struct Os2V5 {
 }
 
 impl Os2V5 {
-    /// See [x_avg_char_width](Os2V0.t.html#method.x_avg_char_width).
-    #[inline]
-    pub fn x_avg_char_width(&self) -> i16 {
-        self.os2_v4.x_avg_char_width()
-    }
-
-    /// See [us_weight_class](Os2V0.t.html#method.us_weight_class).
-    #[inline]
-    pub fn us_weight_class(&self) -> u16 {
-        self.os2_v4.us_weight_class()
-    }
-
-    /// See [us_width_class](Os2V0.t.html#method.us_width_class).
-    #[inline]
-    pub fn us_width_class(&self) -> u16 {
-        self.os2_v4.us_width_class()
-    }
-
-    /// See [fs_type](Os2V0.t.html#method.fs_type).
-    #[inline]
-    pub fn fs_type(&self) -> u16 {
-        self.os2_v4.fs_type()
-    }
-
-    /// See [y_subscript_xsize](Os2V0.t.html#method.y_subscript_xsize).
-    #[inline]
-    pub fn y_subscript_xsize(&self) -> i16 {
-        self.os2_v4.y_subscript_xsize()
-    }
-
-    /// See [y_subscript_ysize](Os2V0.t.html#method.y_subscript_ysize).
-    #[inline]
-    pub fn y_subscript_ysize(&self) -> i16 {
-        self.os2_v4.y_subscript_ysize()
-    }
-
-    /// See [y_subscript_xoffset](Os2V0.t.html#method.y_subscript_xoffset).
-    #[inline]
-    pub fn y_subscript_xoffset(&self) -> i16 {
-        self.os2_v4.y_subscript_xoffset()
-    }
-
-    /// See [y_subscript_yoffset](Os2V0.t.html#method.y_subscript_yoffset).
-    #[inline]
-    pub fn y_subscript_yoffset(&self) -> i16 {
-        self.os2_v4.y_subscript_yoffset()
-    }
-
-    /// See [y_superscript_xsize](Os2V0.t.html#method.y_superscript_xsize).
-    #[inline]
-    pub fn y_superscript_xsize(&self) -> i16 {
-        self.os2_v4.y_superscript_xsize()
-    }
-
-    /// See [y_superscript_ysize](Os2V0.t.html#method.y_superscript_ysize).
-    #[inline]
-    pub fn y_superscript_ysize(&self) -> i16 {
-        self.os2_v4.y_superscript_ysize()
-    }
-
-    /// See [y_superscript_xoffset](Os2V0.t.html#method.y_superscript_xoffset).
-    #[inline]
-    pub fn y_superscript_xoffset(&self) -> i16 {
-        self.os2_v4.y_superscript_xoffset()
-    }
-
-    /// See [y_superscript_yoffset](Os2V0.t.html#method.y_superscript_yoffset).
-    #[inline]
-    pub fn y_superscript_yoffset(&self) -> i16 {
-        self.os2_v4.y_superscript_yoffset()
-    }
-
-    /// See [y_strikeout_size](Os2V0.t.html#method.y_strikeout_size).
-    #[inline]
-    pub fn y_strikeout_size(&self) -> i16 {
-        self.os2_v4.y_strikeout_size()
-    }
-
-    /// See [y_strikeout_position](Os2V0.t.html#method.y_strikeout_position).
-    #[inline]
-    pub fn y_strikeout_position(&self) -> i16 {
-        self.os2_v4.y_strikeout_position()
-    }
-
-    /// See [s_family_class](Os2V0.t.html#method.s_family_class).
-    #[inline]
-    pub fn s_family_class(&self) -> i16 {
-        self.os2_v4.s_family_class()
-    }
-
-    /// See [panose](Os2V0.t.html#method.panose).
-    #[inline]
-    pub fn panose(&self) -> &Panose {
-        self.os2_v4.panose()
-    }
-
-    /// See [ul_unicode_range](Os2V0.t.html#method.ul_unicode_range).
-    #[inline]
-    pub fn ul_unicode_range(&self) -> UnicodeRange {
-        self.os2_v4.ul_unicode_range()
-    }
-
-    /// See [ach_vend_id](Os2V0.t.html#method.ach_vend_id).
-    #[inline]
-    pub fn ach_vend_id(&self) -> Tag {
-        self.os2_v4.ach_vend_id()
-    }
-
-    /// See [fs_selection](Os2V0.t.html#method.fs_selection).
-    #[inline]
-    pub fn fs_selection(&self) -> FontSelectionFlags {
-        self.os2_v4.fs_selection()
-    }
-
-    /// See [us_first_char_index](Os2V0.t.html#method.us_first_char_index).
-    #[inline]
-    pub fn us_first_char_index(&self) -> u16 {
-        self.os2_v4.us_first_char_index()
-    }
-
-    /// See [us_last_char_index](Os2V0.t.html#method.us_last_char_index).
-    #[inline]
-    pub fn us_last_char_index(&self) -> u16 {
-        self.os2_v4.us_last_char_index()
-    }
-
-    /// See [s_typo_ascender](Os2V0.t.html#method.s_typo_ascender).
-    #[inline]
-    pub fn s_typo_ascender(&self) -> i16 {
-        self.os2_v4.s_typo_ascender()
-    }
-
-    /// See [s_typo_descender](Os2V0.t.html#method.s_typo_descender).
-    #[inline]
-    pub fn s_typo_descender(&self) -> i16 {
-        self.os2_v4.s_typo_descender()
-    }
-
-    /// See [s_typo_line_gap](Os2V0.t.html#method.s_typo_line_gap).
-    #[inline]
-    pub fn s_typo_line_gap(&self) -> i16 {
-        self.os2_v4.s_typo_line_gap()
-    }
-
-    /// See [us_win_ascent](Os2V0.t.html#method.us_win_ascent).
-    #[inline]
-    pub fn us_win_ascent(&self) -> u16 {
-        self.os2_v4.us_win_ascent()
-    }
-
-    /// See [us_win_descent](Os2V0.t.html#method.us_win_descent).
-    #[inline]
-    pub fn us_win_descent(&self) -> u16 {
-        self.os2_v4.us_win_descent()
-    }
-
-    /// See [ul_code_page_range](Os2V1.t.html#method.ul_code_page_range).
-    #[inline]
-    pub fn ul_code_page_range(&self) -> CodePageRange {
-        self.os2_v4.ul_code_page_range()
-    }
-
-    /// See [sx_height](Os2V4.t.html#method.sx_height).
-    #[inline]
-    pub fn sx_height(&self) -> i16 {
-        self.os2_v4.sx_height()
-    }
-
-    /// See [s_cap_height](Os2V4.t.html#method.s_cap_height).
-    #[inline]
-    pub fn s_cap_height(&self) -> i16 {
-        self.os2_v4.s_cap_height()
-    }
-
-    /// See [us_default_char](Os2V4.t.html#method.us_default_char).
-    #[inline]
-    pub fn us_default_char(&self) -> u16 {
-        self.os2_v4.us_default_char()
-    }
-
-    /// See [us_break_char](Os2V4.t.html#method.us_break_char).
-    #[inline]
-    pub fn us_break_char(&self) -> u16 {
-        self.os2_v4.us_break_char()
-    }
-
-    /// See [us_max_context](Os2V4.t.html#method.us_max_context).
-    #[inline]
-    pub fn us_max_context(&self) -> u16 {
-        self.os2_v4.us_max_context()
-    }
-
     /// This field is used for fonts with multiple optical styles.
     ///
     /// This value is the lower value of the size range for which this font has been designed.
@@ -2163,92 +1675,21 @@ impl Os2V5 {
     }
 }
 
-named!(
-    #[doc="
-        Parse 'OS/2' table.
+impl ops::Deref for Os2V5 {
+    type Target = Os2V4;
+    fn deref(&self) -> &Self::Target {
+        &self.os2_v4
+    }
+}
 
-        # Example
-
-        'OS/2' table version 0
-        ```
-        // TODO
-        ```
-
-        'OS/2' table version 1
-        ```
-        // TODO
-        ```
-
-        'OS/2' table version 3
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::tables::{Os2, FontSelectionFlags, CodePageRange, UnicodeRange, Panose, parse_os2};
-        use otf::Tag;
-
-        let bytes: &[u8]  = &[
-            0x00, 0x03, 0x04, 0x86, 0x01, 0x90, 0x00, 0x05, 0x00, 0x00, 0x05, 0x9A, 0x05, 0x33,
-            0x00, 0x00, 0x01, 0x1F, 0x05, 0x9A, 0x05, 0x33, 0x00, 0x00, 0x03, 0xD1, 0x00, 0x66,
-            0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0xE0, 0x00, 0x02, 0xFF, 0x50, 0x00, 0x20, 0x5B, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00,
-            0x00, 0x00, 0x47, 0x4F, 0x4F, 0x47, 0x00, 0x40, 0x00, 0x00, 0xFF, 0xFD, 0x06, 0x00,
-            0xFE, 0x00, 0x00, 0x66, 0x07, 0x9A, 0x02, 0x00, 0x20, 0x00, 0x01, 0x9F, 0x00, 0x00,
-            0x00, 0x00, 0x04, 0x3A, 0x05, 0xB0, 0x00, 0x20, 0x00, 0x20, 0x00, 0x03];
-
-        let os2_table = parse_os2(bytes).unwrap().1;
-
-        match os2_table {
-            Os2::Version3(os2) => {
-                assert_eq!(os2.x_avg_char_width(), 1158);
-                assert_eq!(os2.us_weight_class(), 400);
-                assert_eq!(os2.us_width_class(), 5);
-                assert_eq!(os2.fs_type(), 0);
-                assert_eq!(os2.y_subscript_xsize(), 1434);
-                assert_eq!(os2.y_subscript_ysize(), 1331);
-                assert_eq!(os2.y_subscript_xoffset(), 0);
-                assert_eq!(os2.y_subscript_yoffset(), 287);
-                assert_eq!(os2.y_superscript_xsize(), 1434);
-                assert_eq!(os2.y_superscript_ysize(), 1331);
-                assert_eq!(os2.y_superscript_xoffset(), 0);
-                assert_eq!(os2.y_superscript_yoffset(), 977);
-                assert_eq!(os2.y_strikeout_size(), 102);
-                assert_eq!(os2.y_strikeout_position(), 512);
-                assert_eq!(os2.s_family_class(), 0);
-                assert_eq!(os2.panose(), &Panose::new(&[2, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
-                assert_eq!(os2.ul_unicode_range(), UnicodeRange::new(3758097151, 1342185563, 32, 0));
-                assert_eq!(os2.ach_vend_id(), Tag::new(b\"GOOG\"));
-                assert_eq!(os2.fs_selection(), FontSelectionFlags::OBLIQUE);
-                assert_eq!(os2.us_first_char_index(), 0);
-                assert_eq!(os2.us_last_char_index(), 65533);
-                assert_eq!(os2.s_typo_ascender(), 1536);
-                assert_eq!(os2.s_typo_descender(), -512);
-                assert_eq!(os2.s_typo_line_gap(), 102);
-                assert_eq!(os2.us_win_ascent(), 1946);
-                assert_eq!(os2.us_win_descent(), 512);
-                assert_eq!(os2.ul_code_page_range(), CodePageRange::new(536871327, 0));
-                assert_eq!(os2.sx_height(), 1082);
-                assert_eq!(os2.s_cap_height(), 1456);
-                assert_eq!(os2.us_default_char(), 32);
-                assert_eq!(os2.us_break_char(), 32);
-                assert_eq!(os2.us_max_context(), 3);
-            },
-            _ => assert!(false)
-        }
-        ```
-
-        'OS/2' table version 5
-        ```
-        // TODO
-        ```
-    "],
-    pub parse_os2<&[u8],Os2>,
+named!(pub parse_os2<&[u8],Os2>,
     switch!(be_u16,
-     	0x0000 => map!(parse_os2v0, |os2v0| Os2::Version0(os2v0)) |
-     	0x0001 => map!(parse_os2v1, |os2v1| Os2::Version1(os2v1)) |
-     	0x0002 => map!(parse_os2v4, |os2v4| Os2::Version2(os2v4)) |
-     	0x0003 => map!(parse_os2v4, |os2v4| Os2::Version3(os2v4)) |
-     	0x0004 => map!(parse_os2v4, |os2v4| Os2::Version4(os2v4)) |
-     	0x0005 => map!(parse_os2v5, |os2v5| Os2::Version5(os2v5))
+     	0x0000 => map!(parse_os2v0, |os2v0| Os2(Os2Version::Version0(os2v0))) |
+     	0x0001 => map!(parse_os2v1, |os2v1| Os2(Os2Version::Version1(os2v1))) |
+     	0x0002 => map!(parse_os2v4, |os2v4| Os2(Os2Version::Version2(os2v4))) |
+     	0x0003 => map!(parse_os2v4, |os2v4| Os2(Os2Version::Version3(os2v4))) |
+     	0x0004 => map!(parse_os2v4, |os2v4| Os2(Os2Version::Version4(os2v4))) |
+     	0x0005 => map!(parse_os2v5, |os2v5| Os2(Os2Version::Version5(os2v5)))
     )
 );
 

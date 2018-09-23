@@ -1,9 +1,8 @@
 use byteorder::{ByteOrder, BigEndian};
 use error::Error;
 use parser::{TableRecord};
-use parser::tables::{FontTable, parse_table};
 use types::{TableTag, Tag};
-use std::{fmt, cmp};
+use std::{fmt, cmp, ops};
 
 pub struct Table<'otf> {
     buf: &'otf[u8],
@@ -65,10 +64,6 @@ impl<'otf> Table<'otf> {
 
         sum == self.checksum
     }
-
-    pub fn parse(&self) -> Result<FontTable, Error> {
-        Ok(parse_table(self.buf, self.tag)?.1)
-    }
 }
 
 impl<'otf> fmt::Display for Table<'otf> {
@@ -77,6 +72,12 @@ impl<'otf> fmt::Display for Table<'otf> {
     }
 }
 
+impl<'otf> ops::Deref for Table<'otf> {
+    type Target = &'otf[u8];
+    fn deref(&self) -> &Self::Target {
+        &self.buf
+    }
+}
 
 #[cfg(test)]
 mod tests {

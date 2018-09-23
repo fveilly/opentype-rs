@@ -1,5 +1,5 @@
 use nom::{be_u8, be_i16, be_u16, be_i32, be_u32, IResult};
-use std::str;
+use std::{ops, str};
 use error::Error;
 
 /// PostScript Table
@@ -14,8 +14,105 @@ use error::Error;
 ///
 /// More information on ['hmtx'](https://docs.microsoft.com/en-gb/typography/opentype/spec/post)
 #[derive(Debug, Clone, Eq, PartialEq)]
+pub struct PostScriptTable (PostScriptVersion);
+
+impl PostScriptTable {
+    pub fn version(&self) -> &PostScriptVersion {
+        &self.0
+    }
+
+    /// See [italic_angle](PostScriptTableHeader.t.html#method.italic_angle).
+    pub fn italic_angle(&self) -> i32 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.italic_angle(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.italic_angle(),
+            PostScriptVersion::Version_2_5(header) => header.italic_angle(),
+            PostScriptVersion::Version_3_0(header) => header.italic_angle(),
+            PostScriptVersion::Version_4_0(header) => header.italic_angle(),
+        }
+    }
+
+    /// See [underline_position](PostScriptTableHeader.t.html#method.underline_position).
+    pub fn underline_position(&self) -> i16 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.underline_position(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.underline_position(),
+            PostScriptVersion::Version_2_5(header) => header.underline_position(),
+            PostScriptVersion::Version_3_0(header) => header.underline_position(),
+            PostScriptVersion::Version_4_0(header) => header.underline_position(),
+        }
+    }
+
+    /// See [underline_thickness](PostScriptTableHeader.t.html#method.underline_thickness).
+    pub fn underline_thickness(&self) -> i16 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.underline_thickness(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.underline_thickness(),
+            PostScriptVersion::Version_2_5(header) => header.underline_thickness(),
+            PostScriptVersion::Version_3_0(header) => header.underline_thickness(),
+            PostScriptVersion::Version_4_0(header) => header.underline_thickness(),
+        }
+    }
+
+    /// See [is_fixed_pitch](PostScriptTableHeader.t.html#method.is_fixed_pitch).
+    pub fn is_fixed_pitch(&self) -> u32 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.is_fixed_pitch(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.is_fixed_pitch(),
+            PostScriptVersion::Version_2_5(header) => header.is_fixed_pitch(),
+            PostScriptVersion::Version_3_0(header) => header.is_fixed_pitch(),
+            PostScriptVersion::Version_4_0(header) => header.is_fixed_pitch(),
+        }
+    }
+
+    /// See [min_mem_type_42](PostScriptTableHeader.t.html#method.min_mem_type_42).
+    pub fn min_mem_type_42(&self) -> u32 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.min_mem_type_42(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.min_mem_type_42(),
+            PostScriptVersion::Version_2_5(header) => header.min_mem_type_42(),
+            PostScriptVersion::Version_3_0(header) => header.min_mem_type_42(),
+            PostScriptVersion::Version_4_0(header) => header.min_mem_type_42(),
+        }
+    }
+
+    /// See [max_mem_type_42](PostScriptTableHeader.t.html#method.max_mem_type_42).
+    pub fn max_mem_type_42(&self) -> u32 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.max_mem_type_42(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.max_mem_type_42(),
+            PostScriptVersion::Version_2_5(header) => header.max_mem_type_42(),
+            PostScriptVersion::Version_3_0(header) => header.max_mem_type_42(),
+            PostScriptVersion::Version_4_0(header) => header.max_mem_type_42(),
+        }
+    }
+
+    /// See [min_mem_type_1](PostScriptTableHeader.t.html#method.min_mem_type_1).
+    pub fn min_mem_type_1(&self) -> u32 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.min_mem_type_1(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.min_mem_type_1(),
+            PostScriptVersion::Version_2_5(header) => header.min_mem_type_1(),
+            PostScriptVersion::Version_3_0(header) => header.min_mem_type_1(),
+            PostScriptVersion::Version_4_0(header) => header.min_mem_type_1(),
+        }
+    }
+
+    /// See [max_mem_type_1](PostScriptTableHeader.t.html#method.max_mem_type_1).
+    pub fn max_mem_type_1(&self) -> u32 {
+        match &self.0 {
+            PostScriptVersion::Version_1_0(header) => header.max_mem_type_1(),
+            PostScriptVersion::Version_2_0(post_script_table_v2) => post_script_table_v2.max_mem_type_1(),
+            PostScriptVersion::Version_2_5(header) => header.max_mem_type_1(),
+            PostScriptVersion::Version_3_0(header) => header.max_mem_type_1(),
+            PostScriptVersion::Version_4_0(header) => header.max_mem_type_1(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types)]
-pub enum PostScriptTable {
+pub enum PostScriptVersion {
     /// This version is used in order to supply PostScript glyph names when the font file contains
     /// exactly the 258 glyphs in the standard Macintosh TrueType font file (see 'post' Format 1 in
     /// Apple’s specification for a list of the 258 Macintosh glyph names), and the font does not
@@ -66,96 +163,6 @@ pub enum PostScriptTable {
     /// Source: [https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html](https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6post.html)
     #[deprecated]
     Version_4_0(PostScriptTableHeader)
-}
-
-impl PostScriptTable {
-    /// See [italic_angle](PostScriptTableHeader.t.html#method.italic_angle).
-    pub fn italic_angle(&self) -> i32 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.italic_angle(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.italic_angle(),
-            PostScriptTable::Version_2_5(header) => header.italic_angle(),
-            PostScriptTable::Version_3_0(header) => header.italic_angle(),
-            PostScriptTable::Version_4_0(header) => header.italic_angle(),
-        }
-    }
-
-    /// See [underline_position](PostScriptTableHeader.t.html#method.underline_position).
-    pub fn underline_position(&self) -> i16 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.underline_position(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.underline_position(),
-            PostScriptTable::Version_2_5(header) => header.underline_position(),
-            PostScriptTable::Version_3_0(header) => header.underline_position(),
-            PostScriptTable::Version_4_0(header) => header.underline_position(),
-        }
-    }
-
-    /// See [underline_thickness](PostScriptTableHeader.t.html#method.underline_thickness).
-    pub fn underline_thickness(&self) -> i16 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.underline_thickness(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.underline_thickness(),
-            PostScriptTable::Version_2_5(header) => header.underline_thickness(),
-            PostScriptTable::Version_3_0(header) => header.underline_thickness(),
-            PostScriptTable::Version_4_0(header) => header.underline_thickness(),
-        }
-    }
-
-    /// See [is_fixed_pitch](PostScriptTableHeader.t.html#method.is_fixed_pitch).
-    pub fn is_fixed_pitch(&self) -> u32 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.is_fixed_pitch(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.is_fixed_pitch(),
-            PostScriptTable::Version_2_5(header) => header.is_fixed_pitch(),
-            PostScriptTable::Version_3_0(header) => header.is_fixed_pitch(),
-            PostScriptTable::Version_4_0(header) => header.is_fixed_pitch(),
-        }
-    }
-
-    /// See [min_mem_type_42](PostScriptTableHeader.t.html#method.min_mem_type_42).
-    pub fn min_mem_type_42(&self) -> u32 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.min_mem_type_42(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.min_mem_type_42(),
-            PostScriptTable::Version_2_5(header) => header.min_mem_type_42(),
-            PostScriptTable::Version_3_0(header) => header.min_mem_type_42(),
-            PostScriptTable::Version_4_0(header) => header.min_mem_type_42(),
-        }
-    }
-
-    /// See [max_mem_type_42](PostScriptTableHeader.t.html#method.max_mem_type_42).
-    pub fn max_mem_type_42(&self) -> u32 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.max_mem_type_42(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.max_mem_type_42(),
-            PostScriptTable::Version_2_5(header) => header.max_mem_type_42(),
-            PostScriptTable::Version_3_0(header) => header.max_mem_type_42(),
-            PostScriptTable::Version_4_0(header) => header.max_mem_type_42(),
-        }
-    }
-
-    /// See [min_mem_type_1](PostScriptTableHeader.t.html#method.min_mem_type_1).
-    pub fn min_mem_type_1(&self) -> u32 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.min_mem_type_1(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.min_mem_type_1(),
-            PostScriptTable::Version_2_5(header) => header.min_mem_type_1(),
-            PostScriptTable::Version_3_0(header) => header.min_mem_type_1(),
-            PostScriptTable::Version_4_0(header) => header.min_mem_type_1(),
-        }
-    }
-
-    /// See [max_mem_type_1](PostScriptTableHeader.t.html#method.max_mem_type_1).
-    pub fn max_mem_type_1(&self) -> u32 {
-        match self {
-            PostScriptTable::Version_1_0(header) => header.max_mem_type_1(),
-            PostScriptTable::Version_2_0(post_script_table_v2) => post_script_table_v2.max_mem_type_1(),
-            PostScriptTable::Version_2_5(header) => header.max_mem_type_1(),
-            PostScriptTable::Version_3_0(header) => header.max_mem_type_1(),
-            PostScriptTable::Version_4_0(header) => header.max_mem_type_1(),
-        }
-    }
 }
 
 /// The last four entries in the table are present because PostScript drivers can do better memory
@@ -256,54 +263,6 @@ pub struct PostScriptTableV20 {
 }
 
 impl PostScriptTableV20 {
-    /// See [italic_angle](PostScriptTableHeader.t.html#method.italic_angle).
-    #[inline]
-    pub fn italic_angle(&self) -> i32 {
-        self.header.italic_angle
-    }
-
-    /// See [underline_position](PostScriptTableHeader.t.html#method.underline_position).
-    #[inline]
-    pub fn underline_position(&self) -> i16 {
-        self.header.underline_position
-    }
-
-    /// See [underline_thickness](PostScriptTableHeader.t.html#method.underline_thickness).
-    #[inline]
-    pub fn underline_thickness(&self) -> i16 {
-        self.header.underline_thickness
-    }
-
-    /// See [is_fixed_pitch](PostScriptTableHeader.t.html#method.is_fixed_pitch).
-    #[inline]
-    pub fn is_fixed_pitch(&self) -> u32 {
-        self.header.is_fixed_pitch
-    }
-
-    /// See [min_mem_type_42](PostScriptTableHeader.t.html#method.min_mem_type_42).
-    #[inline]
-    pub fn min_mem_type_42(&self) -> u32 {
-        self.header.min_mem_type_42
-    }
-
-    /// See [max_mem_type_42](PostScriptTableHeader.t.html#method.max_mem_type_42).
-    #[inline]
-    pub fn max_mem_type_42(&self) -> u32 {
-        self.header.max_mem_type_42
-    }
-
-    /// See [min_mem_type_1](PostScriptTableHeader.t.html#method.min_mem_type_1).
-    #[inline]
-    pub fn min_mem_type_1(&self) -> u32 {
-        self.header.min_mem_type_1
-    }
-
-    /// See [max_mem_type_1](PostScriptTableHeader.t.html#method.max_mem_type_1).
-    #[inline]
-    pub fn max_mem_type_1(&self) -> u32 {
-        self.header.max_mem_type_1
-    }
-
     /// Number of glyphs (this should be the same as numGlyphs in 'maxp' table).
     pub fn num_glyphs(&self) -> u16 {
         self.num_glyphs
@@ -333,52 +292,20 @@ impl PostScriptTableV20 {
     }
 }
 
-named!(
-    #[doc="
-        Parse Post Script Table.
+impl<'otf> ops::Deref for PostScriptTableV20 {
+    type Target = PostScriptTableHeader;
+    fn deref(&self) -> &Self::Target {
+        &self.header
+    }
+}
 
-        # Example
-
-        Post Script Table version 2
-        ```
-        // TODO
-        ```
-
-        Post Script Table version 3
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::tables::{PostScriptTable, parse_post_script_table};
-
-        let bytes: &[u8]  = &[
-            0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x6A, 0x00, 0x64, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00];
-
-        let post_script_table = parse_post_script_table(bytes).unwrap().1;
-
-        match post_script_table {
-            PostScriptTable::Version_3_0(header) => {
-                assert_eq!(header.italic_angle(), 0);
-                assert_eq!(header.underline_position(), -150);
-                assert_eq!(header.underline_thickness(), 100);
-                assert_eq!(header.is_fixed_pitch(), 0);
-                assert_eq!(header.min_mem_type_42(), 0);
-                assert_eq!(header.max_mem_type_42(), 0);
-                assert_eq!(header.min_mem_type_1(), 0);
-                assert_eq!(header.max_mem_type_1(), 0);
-            },
-            _ => assert!(false)
-        }
-        ```
-    "],
-    pub parse_post_script_table<&[u8],PostScriptTable>,
+named!(pub parse_post_script_table<&[u8],PostScriptTable>,
     switch!(be_i32,
-     	0x00010000 => map!(parse_post_script_header, |header| PostScriptTable::Version_1_0(header)) |
-        0x00020000 => map!(parse_post_script_table_v2_0, |post_script_v2_0| PostScriptTable::Version_2_0(post_script_v2_0)) |
-     	0x00025000 => map!(parse_post_script_header, |header| PostScriptTable::Version_2_5(header)) |
-     	0x00030000 => map!(parse_post_script_header, |header| PostScriptTable::Version_3_0(header)) |
-     	0x00040000 => map!(parse_post_script_header, |header| PostScriptTable::Version_4_0(header))
+     	0x00010000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_1_0(header))) |
+        0x00020000 => map!(parse_post_script_table_v2_0, |post_script_v2_0| PostScriptTable(PostScriptVersion::Version_2_0(post_script_v2_0))) |
+     	0x00025000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_2_5(header))) |
+     	0x00030000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_3_0(header))) |
+     	0x00040000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_4_0(header)))
     )
 );
 
@@ -422,50 +349,10 @@ named!(parse_post_script_table_v2_0<&[u8],PostScriptTableV20>,
     )
 );
 
-/// Parse a list of Pascal Strings and store them into a vector of &str.
-///
-/// See [https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed](https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed)
-///
-/// # Example
-///
-/// ```
-/// extern crate opentype_rs as otf;
-///
-/// use otf::parser::tables::parse_pascal_strings;
-///
-/// let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
-///     0x6F, 0x72, 0x6C, 0x64];
-///
-/// let pascal_strings = parse_pascal_strings(bytes, 2).unwrap().1;
-///
-/// assert_eq!(pascal_strings.len(), 2);
-/// assert_eq!(pascal_strings.get(0).unwrap(), &"Hello");
-/// assert_eq!(pascal_strings.get(1).unwrap(), &"World");
-/// ```
 pub fn parse_pascal_strings(input: &[u8], length: usize) -> IResult<&[u8], Vec<&str>> {
     count!(input, map_res!(length_data!(be_u8), |s| str::from_utf8(s)), length)
 }
 
-/// Parse a list of Pascal Strings and store them into a vector of String.
-///
-/// See [https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed](https://en.wikipedia.org/wiki/String_(computer_science)#Length-prefixed)
-///
-/// # Example
-///
-/// ```
-/// extern crate opentype_rs as otf;
-///
-/// use otf::parser::tables::parse_pascal_strings_to_owned;
-///
-/// let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
-///     0x6F, 0x72, 0x6C, 0x64];
-///
-/// let pascal_strings = parse_pascal_strings_to_owned(bytes, 2).unwrap().1;
-///
-/// assert_eq!(pascal_strings.len(), 2);
-/// assert_eq!(pascal_strings.get(0).unwrap(), &"Hello");
-/// assert_eq!(pascal_strings.get(1).unwrap(), &"World");
-/// ```
 pub fn parse_pascal_strings_to_owned(input: &[u8], length: usize) -> IResult<&[u8], Vec<String>> {
     count!(input, map_res!(length_data!(be_u8), |s: &[u8]| String::from_utf8(s.to_vec())), length)
 }
@@ -474,6 +361,30 @@ pub fn parse_pascal_strings_to_owned(input: &[u8], length: usize) -> IResult<&[u
 mod tests {
     use super::*;
     use nom::{Err, ErrorKind, Context, Needed};
+
+    #[test]
+    fn case_post_script_table_pascal_strings() {
+        let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
+            0x6F, 0x72, 0x6C, 0x64];
+
+        let pascal_strings = parse_pascal_strings(bytes, 2).unwrap().1;
+
+        assert_eq!(pascal_strings.len(), 2);
+        assert_eq!(pascal_strings.get(0).unwrap(), &"Hello");
+        assert_eq!(pascal_strings.get(1).unwrap(), &"World");
+    }
+
+    #[test]
+    fn case_post_script_table_pascal_strings_to_owned() {
+        let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
+            0x6F, 0x72, 0x6C, 0x64];
+
+        let pascal_strings = parse_pascal_strings_to_owned(bytes, 2).unwrap().1;
+
+        assert_eq!(pascal_strings.len(), 2);
+        assert_eq!(pascal_strings.get(0).unwrap(), &"Hello");
+        assert_eq!(pascal_strings.get(1).unwrap(), &"World");
+    }
 
     #[test]
     fn case_post_script_table_invalid_empty_slice() {

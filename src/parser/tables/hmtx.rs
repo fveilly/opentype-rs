@@ -98,34 +98,6 @@ impl LongHorMetricRecord {
     }
 }
 
-#[doc="
-    Parse Horizontal Metrics Table.
-
-    * `number_of_hmetrics` - The number of longHorMetric records is determined by the
-      [numberOfHMetrics](./Hhea.t.html#method.number_of_hmetrics) field in the 'hhea' table.
-    * `num_glyphs` - The number of glyphs in the font is determined by the
-      [numGlyphs](./Maxp.t.html#method.num_glyphs) field in the 'hhea' table.
-
-    # Example
-
-    ```
-    extern crate opentype_rs as otf;
-
-    use otf::parser::tables::{HorizontalMetricsTable, parse_horizontal_metrics_table};
-
-    let bytes: &[u8]  = &[
-        0x03, 0x8C, 0x00, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xFB,
-        0x00, 0x00];
-
-    let horizontal_metrics_table = parse_horizontal_metrics_table(bytes, 4, 4).unwrap().1;
-
-    assert_eq!(horizontal_metrics_table.h_metrics().len(), 4);
-    assert!(horizontal_metrics_table.left_side_bearings().is_empty());
-
-    assert_eq!(horizontal_metrics_table.h_metrics().get(0).unwrap().advance_width(), 908);
-    assert_eq!(horizontal_metrics_table.h_metrics().get(0).unwrap().lsb(), 100);
-    ```
-"]
 pub fn parse_horizontal_metrics_table(input: &[u8], number_of_hmetrics: u16, num_glyphs: u16)
     -> IResult<&[u8], HorizontalMetricsTable> {
     do_parse!(

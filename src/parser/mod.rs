@@ -33,18 +33,20 @@ pub enum OpenTypeFontKind {
     FontCollection(TTCHeader)
 }
 
-named!(
-    #[doc="
-        Parse OpenType font file
+named!(pub parse_otff<&[u8],OpenTypeFontKind>,
+    alt!(
+        map!(parse_offset_table, |offset_table| OpenTypeFontKind::Font(offset_table)) |
+        map!(parse_ttc_header, |ttc_header| OpenTypeFontKind::FontCollection(ttc_header))
+    )
+);
 
-        # Example
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nom::{Err, ErrorKind, Context, Needed};
 
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::{OpenTypeFontKind, SfntVersion, parse_otff};
-        use otf::Rect;
-
+    #[test]
+    fn case_open_type_font_file() {
         let bytes: &[u8]  = &[
             0x00, 0x01, 0x00, 0x00, 0x00, 0x12, 0x01, 0x00, 0x00, 0x04, 0x00, 0x20];
 
@@ -60,11 +62,5 @@ named!(
             },
             _ => assert!(false)
         }
-        ```
-    "],
-    pub parse_otff<&[u8],OpenTypeFontKind>,
-    alt!(
-        map!(parse_offset_table, |offset_table| OpenTypeFontKind::Font(offset_table)) |
-        map!(parse_ttc_header, |ttc_header| OpenTypeFontKind::FontCollection(ttc_header))
-    )
-);
+    }
+}

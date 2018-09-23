@@ -80,52 +80,56 @@ impl NamingTable {
 /// language-tag records.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Platform {
-    Unicode(UnicodeEncoding, u16),
-    Macintosh(MacintoshEncoding, MacintoshLanguage),
+    Unicode(UnicodeEncoding, Option<u16>),
+    Macintosh(MacintoshEncoding, Option<MacintoshLanguage>),
     /// Platform ID 2 (ISO) has been deprecated as of OpenType version v1.3. It was intended to
     /// represent ISO/IEC 10646, as opposed to Unicode. It is redundant, however, since both
     /// standards have identical character code assignments.
     #[deprecated]
-    Iso(IsoEncoding, u16),
-    Windows(WindowsEncoding, WindowsLanguage),
-    Custom(u16, u16),
+    Iso(IsoEncoding, Option<u16>),
+    Windows(WindowsEncoding, Option<WindowsLanguage>),
+    Custom(u16, Option<u16>),
     /// Platform ID values 240 through 255 are reserved for user-defined platforms. This
     /// specification will never assign these values to a registered platform.
-    UserDefined(u16, u16)
+    UserDefined(u16, Option<u16>)
 }
 
 impl Platform {
-    pub fn new(platform_id: u16, encoding_id: u16, language_id: u16) -> Option<Platform> {
+    pub fn new(platform_id: u16, encoding_id: u16, language_opt: Option<u16>) -> Option<Platform> {
         match platform_id {
             0 => {
                 UnicodeEncoding::from_u16(encoding_id).map(|unicode_encoding_id| {
-                    Platform::Unicode(unicode_encoding_id, language_id)
+                    Platform::Unicode(unicode_encoding_id, language_opt)
                 })
             },
             1 => {
                 MacintoshEncoding::from_u16(encoding_id).and_then(|macintosh_encoding_id| {
-                    MacintoshLanguage::from_u16(language_id).map(|macintosh_language_id| {
-                        Platform::Macintosh(macintosh_encoding_id, macintosh_language_id)
-                    })
+                    let macintosh_language_id = language_opt.and_then(|language_id| {
+                        MacintoshLanguage::from_u16(language_id)
+                    });
+
+                    Some(Platform::Macintosh(macintosh_encoding_id, macintosh_language_id))
                 })
             },
             2 => {
                 IsoEncoding::from_u16(encoding_id).map(|iso_encoding_id| {
-                    Platform::Iso(iso_encoding_id, language_id)
+                    Platform::Iso(iso_encoding_id, language_opt)
                 })
             },
             3 => {
                 WindowsEncoding::from_u16(encoding_id).and_then(|windows_encoding_id| {
-                    WindowsLanguage::from_u16(language_id).map(|windows_language_id| {
-                        Platform::Windows(windows_encoding_id, windows_language_id)
-                    })
+                    let windows_language_id = language_opt.and_then(|language_id| {
+                        WindowsLanguage::from_u16(language_id)
+                    });
+
+                    Some(Platform::Windows(windows_encoding_id, windows_language_id))
                 })
             },
             4 => {
-                Some(Platform::Custom(encoding_id, language_id))
+                Some(Platform::Custom(encoding_id, language_opt))
             },
             240...255 => {
-                Some(Platform::UserDefined(encoding_id, language_id))
+                Some(Platform::UserDefined(encoding_id, language_opt))
             },
             _ => None
         }
@@ -1325,75 +1329,7 @@ impl LangTagRecord {
 }
 
 
-named!(
-    #[doc="
-        Parse 'name' table.
-
-        # Example
-
-        'name' table format 0
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::tables::{NamingTable, Platform, MacintoshEncoding,
-            MacintoshLanguage, NameId, parse_naming_table};
-
-        let bytes: &[u8]  = &[
-            0x00, 0x00, 0x00, 0x1A, 0x01, 0x3E, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x2F, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x06,
-            0x00, 0x2F, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x07, 0x00, 0x35,
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x06, 0x00, 0x2F, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x06, 0x00, 0x2F, 0x00, 0x01, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x05, 0x00, 0x13, 0x00, 0x3C, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x06, 0x00, 0x0E, 0x00, 0x4F, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07,
-            0x00, 0x20, 0x00, 0x5D, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00, 0x06,
-            0x00, 0x7D, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x00, 0x0A, 0x00, 0x83,
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x13, 0x00, 0x8D, 0x00, 0x01,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x0D, 0x00, 0x2E, 0x00, 0xA0, 0x00, 0x01, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x0E, 0x00, 0x2A, 0x00, 0xCE, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09,
-            0x00, 0x00, 0x00, 0x5E, 0x00, 0xF8, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x01,
-            0x00, 0x0C, 0x01, 0x56, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x02, 0x00, 0x0E,
-            0x01, 0x62, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x03, 0x00, 0x0C, 0x01, 0x56,
-            0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x04, 0x00, 0x0C, 0x01, 0x56, 0x00, 0x03,
-            0x00, 0x01, 0x04, 0x09, 0x00, 0x05, 0x00, 0x26, 0x01, 0x70, 0x00, 0x03, 0x00, 0x01,
-            0x04, 0x09, 0x00, 0x06, 0x00, 0x1C, 0x01, 0x96, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09,
-            0x00, 0x07, 0x00, 0x40, 0x01, 0xB2, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x09,
-            0x00, 0x0C, 0x01, 0xF2, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x0B, 0x00, 0x14,
-            0x01, 0xFE, 0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x0C, 0x00, 0x26, 0x02, 0x12,
-            0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x0D, 0x00, 0x5C, 0x02, 0x38, 0x00, 0x03,
-            0x00, 0x01, 0x04, 0x09, 0x00, 0x0E, 0x00, 0x54, 0x02, 0x94];
-
-        let naming_table = parse_naming_table(bytes).unwrap().1;
-
-        assert_eq!(naming_table.string_offset(), 318);
-        assert_eq!(naming_table.name_records().len(), 26);
-        assert!(naming_table.lang_tag_records().is_none());
-
-        let first_name_record = naming_table.name_records().get(0).unwrap();
-
-        match first_name_record.platform() {
-            Platform::Macintosh(encoding_id, language_id) => {
-                assert_eq!(encoding_id, MacintoshEncoding::Roman);
-                assert_eq!(language_id, MacintoshLanguage::English);
-            },
-            _ => assert!(false)
-        }
-
-        assert_eq!(first_name_record.name_id(), NameId::Copyright);
-        assert_eq!(first_name_record.length(), 47);
-        assert_eq!(first_name_record.offset(), 0);
-        ```
-
-        'name' table format 1
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::tables::{NamingTable, parse_naming_table};
-
-        // TODO
-        ```
-    "],
-    pub parse_naming_table<&[u8],NamingTable>,
+named!(pub parse_naming_table<&[u8],NamingTable>,
     alt!(parse_naming_table_format0 | parse_naming_table_format1)
 );
 
@@ -1435,7 +1371,7 @@ named!(parse_name_record<&[u8],NameRecord>,
         platform_id: be_u16 >>
         encoding_id: be_u16 >>
         language_id: be_u16 >>
-        platform: expr_opt!(Platform::new(platform_id, encoding_id, language_id)) >>
+        platform: expr_opt!(Platform::new(platform_id, encoding_id, Some(language_id))) >>
         name_id: map_opt!(be_u16, |v| NameId::from_u16(v)) >>
         length: be_u16 >>
         offset: be_u16 >>
@@ -1501,7 +1437,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x00];
 
         let expected = (&b""[..], NameRecord {
-            platform: Platform::new(1, 0, 0).unwrap(),
+            platform: Platform::new(1, 0, Some(0)).unwrap(),
             name_id: NameId::FontSpecificName(0x0FFF),
             offset: 0,
             length: 0
@@ -1528,11 +1464,19 @@ mod tests {
     }
 
     #[test]
-    fn case_name_record_invalid_macintosh_language_id() {
-        let bytes: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0xFF];
+    fn case_name_record_malformed_macintosh_language_id() {
+        let bytes: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x01, 0x00, 0x00, 0x00,
+            0x00];
 
-        let expected =  Result::Err(Err::Error(Context::Code(&b""[..], ErrorKind::ExprOpt)));
-        assert_eq!(parse_name_record(bytes), expected);
+        let expected = (&b""[..], NameRecord {
+            platform: Platform::new(1, 0, None).unwrap(),
+            name_id: NameId::FontFamilyName,
+            offset: 0,
+            length: 0
+        });
+
+        let res = parse_name_record(bytes).unwrap();
+        assert_eq!(res, expected);
     }
 
     #[test]

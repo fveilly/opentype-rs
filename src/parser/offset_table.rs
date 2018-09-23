@@ -68,50 +68,7 @@ impl fmt::Display for SfntVersion {
     }
 }
 
-named!(
-    #[doc="
-        Parse Offset Table.
-
-        # Example
-
-        Parse TrueType Offset Table
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::{OffsetTable, SfntVersion, parse_offset_table};
-
-        let bytes: &[u8] = &[
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x12, 0x01, 0x00, 0x00, 0x04, 0x00, 0x20];
-
-        let offset_table = parse_offset_table(bytes).unwrap().1;
-
-        assert_eq!(offset_table.sfnt_version(), SfntVersion::TrueType);
-        assert_eq!(offset_table.num_tables(), 18);
-        assert_eq!(offset_table.search_range(), 256);
-        assert_eq!(offset_table.entry_selector(), 4);
-        assert_eq!(offset_table.range_shift(), 32);
-        ```
-
-        Parse CFF Offset Table
-        ```
-        extern crate opentype_rs as otf;
-
-        use otf::parser::{OffsetTable, SfntVersion, parse_offset_table};
-
-        let bytes: &[u8] = &[
-            0x4F, 0x54, 0x54, 0x4F, 0x00, 0x0E, 0x00, 0x80, 0x00, 0x03, 0x00, 0x60
-        ];
-
-        let offset_table = parse_offset_table(bytes).unwrap().1;
-
-        assert_eq!(offset_table.sfnt_version(), SfntVersion::CFF);
-        assert_eq!(offset_table.num_tables(), 14);
-        assert_eq!(offset_table.search_range(), 128);
-        assert_eq!(offset_table.entry_selector(), 3);
-        assert_eq!(offset_table.range_shift(), 96);
-        ```
-    "],
-    pub parse_offset_table<&[u8],OffsetTable>,
+named!(pub parse_offset_table<&[u8],OffsetTable>,
     do_parse!(
         sfnt_version: parse_sfnt_version >>
         num_tables: be_u16 >>
@@ -144,6 +101,35 @@ named!(parse_sfnt_version<&[u8],SfntVersion>,
 mod tests {
     use super::*;
     use nom::{Err, ErrorKind, Context, Needed};
+
+    #[test]
+    fn case_offset_table_true_type() {
+        let bytes: &[u8] = &[
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x12, 0x01, 0x00, 0x00, 0x04, 0x00, 0x20];
+
+        let offset_table = parse_offset_table(bytes).unwrap().1;
+
+        assert_eq!(offset_table.sfnt_version(), SfntVersion::TrueType);
+        assert_eq!(offset_table.num_tables(), 18);
+        assert_eq!(offset_table.search_range(), 256);
+        assert_eq!(offset_table.entry_selector(), 4);
+        assert_eq!(offset_table.range_shift(), 32);
+    }
+
+    #[test]
+    fn case_offset_table_cff() {
+        let bytes: &[u8] = &[
+            0x4F, 0x54, 0x54, 0x4F, 0x00, 0x0E, 0x00, 0x80, 0x00, 0x03, 0x00, 0x60
+        ];
+
+        let offset_table = parse_offset_table(bytes).unwrap().1;
+
+        assert_eq!(offset_table.sfnt_version(), SfntVersion::CFF);
+        assert_eq!(offset_table.num_tables(), 14);
+        assert_eq!(offset_table.search_range(), 128);
+        assert_eq!(offset_table.entry_selector(), 3);
+        assert_eq!(offset_table.range_shift(), 96);
+    }
 
     #[test]
     fn case_offset_table_invalid_empty_slice() {
