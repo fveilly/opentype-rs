@@ -9,9 +9,9 @@
 //!
 //! More information on [nom](https://crates.io/crates/nom) crate
 
-mod offset_table;
-mod table_record;
-mod ttc_header;
+pub mod offset_table;
+pub mod table_record;
+pub mod ttc_header;
 
 pub mod tables;
 

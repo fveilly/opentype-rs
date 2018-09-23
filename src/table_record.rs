@@ -1,22 +1,37 @@
 use byteorder::{ByteOrder, BigEndian};
 use error::Error;
-use parser::{TableRecord};
+use parser;
 use types::{TableTag, Tag};
 use std::{fmt, cmp, ops};
 
-pub struct Table<'otf> {
+pub struct TableRecord<'otf> {
     buf: &'otf[u8],
-    tag: TableTag,
-    checksum: u32
+    table_record: parser::TableRecord,
+    tag: TableTag
 }
 
-impl<'otf> Table<'otf> {
-    pub fn new(buf: &'otf[u8], tag: TableTag, checksum: u32) -> Table {
-        Table {
-            buf,
-            tag,
-            checksum
+impl<'otf> TableRecord<'otf> {
+    pub fn new(buf: &'otf[u8], table_record: parser::TableRecord) -> Option<TableRecord<'otf>> {
+        let tag = match TableTag::parse(table_record.table_tag()) {
+            Some(table_tag) => table_tag,
+            _ => return None
+        };
+
+        if table_record.length() == 0 {
+            return None
         }
+
+        let boundary: usize = (table_record.offset() + ((table_record.length() + 3) & !3)) as usize;
+
+        if buf.len() < boundary {
+            return None
+        }
+
+        Some(TableRecord {
+            buf: &buf[table_record.offset() as usize..boundary],
+            table_record,
+            tag
+        })
     }
 
     pub fn tag(&self) -> TableTag {
@@ -24,10 +39,10 @@ impl<'otf> Table<'otf> {
     }
 
     pub fn validate(&self) -> bool {
-        let mut sum : u32 = 0;
-
         // FIXME: Should use exact_chuncks instead of chuncks when stable (cf. #47115)
         let mut iter = self.buf.chunks(4);
+
+        let mut sum : u32 = 0;
 
         match self.tag {
             TableTag::Head => {
@@ -62,32 +77,19 @@ impl<'otf> Table<'otf> {
             }
         }
 
-        sum == self.checksum
+        sum == self.table_record.check_sum()
     }
 }
 
-impl<'otf> fmt::Display for Table<'otf> {
+impl<'otf> fmt::Display for TableRecord<'otf> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:X?}", self.buf)
     }
 }
 
-impl<'otf> ops::Deref for Table<'otf> {
+impl<'otf> ops::Deref for TableRecord<'otf> {
     type Target = &'otf[u8];
     fn deref(&self) -> &Self::Target {
         &self.buf
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn case_offset_table_typefont() {
-        let bytes: &[u8]  = &[
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x23, 0x12,
-            0x8A, 0x7F, 0x70, 0x48, 0x5F, 0x0F, 0x3C, 0xF5
-        ];
     }
 }

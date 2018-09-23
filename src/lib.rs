@@ -11,13 +11,15 @@ extern crate byteorder;
 mod font;
 mod error;
 mod otff;
-mod table;
+mod table_record;
 mod types;
 
 mod parser;
 mod tables;
 
 pub use self::otff::OpenTypeFontFile;
+pub use self::font::Font;
+pub use self::table_record::TableRecord;
 pub use self::types::{
     Tag,
     TableTag,
@@ -32,6 +34,8 @@ pub use self::tables::maxp::*;
 pub use self::tables::name::*;
 pub use self::tables::os2::*;
 pub use self::tables::post::*;
+
+pub use self::parser::offset_table::OffsetTable;
 
 pub use self::parser::tables::name::{
     Platform,

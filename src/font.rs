@@ -1,95 +1,94 @@
-use parser::{SfntVersion, OffsetTable, TableRecord};
-use table::Table;
+use parser;
+use table_record::TableRecord;
 use types::{Tag, TableTag};
+use error::Error;
+use std::ops;
 
 pub struct Font<'otf> {
     buf: &'otf[u8],
-    sfnt_version: SfntVersion,
-    table_records: Vec<TableRecord>
+    remainder: &'otf[u8],
+    offset_table: parser::OffsetTable
 }
 
 impl<'otf> Font<'otf> {
-    pub fn new(buf: &'otf[u8], sfnt_version: SfntVersion, table_records: Vec<TableRecord>) -> Font<'otf> {
+    pub(crate) fn new(buf: &'otf[u8], remainder: &'otf[u8], offset_table: parser::OffsetTable) -> Font<'otf> {
         Font {
             buf,
-            sfnt_version,
-            table_records
+            remainder,
+            offset_table
         }
     }
 
+    /// TableRecord iterator. Each iteration will parse the next TableRecord lazily.
     pub fn iter(&self) -> FontIterator {
         FontIterator {
             buf: self.buf,
-            table_records: &self.table_records,
+            remainder: self.remainder,
+            num_tables: self.offset_table.num_tables(),
             pos: 0
         }
     }
+}
 
-    pub fn sfnt_version(&self) -> SfntVersion {
-        self.sfnt_version
-    }
+impl<'otf> IntoIterator for Font<'otf> {
+    type Item = TableRecord<'otf>;
+    type IntoIter = FontIterator<'otf>;
 
-    pub fn search(&self, table_tag: TableTag) -> Option<Table> {
-        let tag: Tag = Tag::from(table_tag);
-        match self.table_records.binary_search_by(|table_record| table_record.table_tag().cmp(&tag)) {
-            Ok(index) => self.table_records.get(index).and_then(|table_record| {
-                if table_record.length() == 0 {
-                    return None;
-                }
-
-                let boundary: usize = (table_record.offset() + ((table_record.length() + 3) & !3)) as usize;
-
-                if self.buf.len() < boundary {
-                    return None;
-                }
-
-                TableTag::parse(table_record.table_tag()).map(|table_tag|
-                    Table::new(&self.buf[table_record.offset() as usize..boundary],
-                                   table_tag, table_record.check_sum()))
-            }),
-            _ => None
+    fn into_iter(self) -> Self::IntoIter {
+        FontIterator {
+            buf: self.buf,
+            remainder: self.remainder,
+            num_tables: self.offset_table.num_tables(),
+            pos: 0
         }
     }
 }
 
-pub struct FontIterator<'otf, 'a> {
+impl<'otf> ops::Deref for Font<'otf> {
+    type Target = parser::OffsetTable;
+    fn deref(&self) -> &Self::Target {
+        &self.offset_table
+    }
+}
+
+pub struct FontIterator<'otf> {
     buf: &'otf[u8],
-    table_records: &'a[TableRecord],
-    pos: usize
+    remainder: &'otf[u8],
+    num_tables: u16,
+    pos: u16
 }
 
-impl<'otf, 'a> Iterator for FontIterator<'otf, 'a> {
-    type Item = Table<'otf>;
+impl<'otf> Iterator for FontIterator<'otf> {
+    type Item = TableRecord<'otf>;
 
-    fn next(&mut self) -> Option<Table<'otf>> {
-        if self.pos > self.table_records.len() {
-            return None;
-        }
-
+    /// Try to parse the next TableRecord.
+    ///
+    /// If the parsing fail or if the last TableRecord has been parsed, return None. If the
+    /// TableRecord contains corrupted data, skip it and try to parse the next one.
+    fn next(&mut self) -> Option<TableRecord<'otf>> {
         loop {
-            let element = self.table_records.get(self.pos);
-            self.pos = self.pos + 1;
+            if self.pos >= self.num_tables {
+                break;
+            }
 
-            match element {
-                Some(table_record) => {
-                    if let Some(table_tag) = TableTag::parse(table_record.table_tag()) {
-                        if table_record.length() > 0 {
-                            let boundary: usize = (table_record.offset() + ((table_record.length() + 3) & !3)) as usize;
+            match parser::parse_table_record(self.remainder) {
+                Ok((bytes, table_record)) => {
+                    self.remainder = bytes;
+                    self.pos = self.pos + 1;
 
-                            if self.buf.len() >= boundary {
-                                return Some(Table::new(&self.buf[table_record.offset() as usize..boundary],
-                                                       table_tag, table_record.check_sum()));
-                            }
-                        }
+                    if let Some(table_record) = TableRecord::new(self.buf, table_record) {
+                        return Some(table_record);
                     }
                 },
-                _ => return None
+                _ => break
             }
         }
+
+        None
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let size = self.table_records.len();
+        let size = usize::from(self.num_tables);
         (size, Some(size))
     }
 }

@@ -21,14 +21,16 @@ fn main() {
     let otff = OpenTypeFontFile::parse(buf).unwrap();
 
     for font in otff {
-        for table in font.iter() {
-            match table.tag() {
+        for table_record in font.iter() {
+            assert!(table_record.validate());
+
+            match table_record.tag() {
                 TableTag::Head => {
-                    let font_header_table = FontHeaderTable::parse(&table).unwrap();
+                    let font_header_table = FontHeaderTable::parse(&table_record).unwrap();
                     assert_eq!(font_header_table.font_revision(), 140050);
                 },
                 TableTag::Name => {
-                    let naming_table = NamingTable::parse(&table).unwrap();
+                    let naming_table = NamingTable::parse(&table_record).unwrap();
                     assert_eq!(naming_table.string_offset(), 318);
                 },
                 _ => {}

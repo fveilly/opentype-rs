@@ -68,12 +68,7 @@ impl<'otf> Iterator for OpenTypeFontFileIterator<'otf> {
                 }
                 else {
                     self.pos =  self.pos + 1;
-
-                    match parse_table_records(self.otff.remainder, offset_table.num_tables()) {
-                        Ok((_, table_records)) => Some(Font::new(
-                            self.otff.buf, offset_table.sfnt_version(), table_records)),
-                        _ => None
-                    }
+                    Some(Font::new(self.otff.buf, self.otff.remainder, *offset_table))
                 }
             },
             OpenTypeFontKind::FontCollection(ttc_header) => {
