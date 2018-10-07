@@ -1,8 +1,9 @@
-use byteorder::{ByteOrder, BigEndian};
 use error::Error;
 use parser;
 use types::{TableTag, Tag};
 use std::{fmt, cmp, ops};
+use parser::table_record::{compute_checksum, compute_checksum_for_head};
+use nom::types::CompleteByteSlice;
 
 pub struct TableRecord<'otf> {
     buf: &'otf[u8],
@@ -11,73 +12,53 @@ pub struct TableRecord<'otf> {
 }
 
 impl<'otf> TableRecord<'otf> {
-    pub fn new(buf: &'otf[u8], table_record: parser::TableRecord) -> Option<TableRecord<'otf>> {
+    pub(crate) fn new(buf: &'otf[u8], table_record: parser::TableRecord) -> Option<TableRecord<'otf>> {
         let tag = match TableTag::parse(table_record.table_tag()) {
             Some(table_tag) => table_tag,
             _ => return None
         };
 
-        if table_record.length() == 0 {
+        let table_record_len = table_record.length() as usize;
+        let table_record_offset = table_record.offset() as usize;
+
+        if table_record_len == 0 {
             return None
         }
 
-        let boundary: usize = (table_record.offset() + ((table_record.length() + 3) & !3)) as usize;
+        let offset_limit = table_record_offset + table_record_len + table_record_len % 4;
 
-        if buf.len() < boundary {
+        if buf.len() < offset_limit {
             return None
         }
 
         Some(TableRecord {
-            buf: &buf[table_record.offset() as usize..boundary],
+            buf: &buf[table_record_offset..offset_limit],
             table_record,
             tag
         })
     }
 
+    /// Table tag.
     pub fn tag(&self) -> TableTag {
         self.tag
     }
 
+    /// Compute checksum of the table and verify it matches with the TableRecord value.
     pub fn validate(&self) -> bool {
-        // FIXME: Should use exact_chuncks instead of chuncks when stable (cf. #47115)
-        let mut iter = self.buf.chunks(4);
-
-        let mut sum : u32 = 0;
-
         match self.tag {
             TableTag::Head => {
-                // Compute the checksum for the first 8 bits of the 'head' table
-                for i in 0..2 {
-                    sum = match iter.next() {
-                        Some(chunk) if chunk.len() >= 4 => sum.wrapping_add(BigEndian::read_u32(chunk)),
-                        _ => return false
-                    };
-                }
-
-                // Ignore the checkSumAdjustment field (32 bits) while computing the checksum of the
-                // 'head' table
-                if iter.next().is_none() {
-                    return false;
-                }
-
-                // Compute the remaining bits
-                for chunk in iter {
-                    if chunk.len() >= 4 {
-                        sum = sum.wrapping_add(BigEndian::read_u32(chunk));
-                    }
+                match compute_checksum_for_head(self.buf) {
+                    Some(checksum) => checksum == self.table_record.check_sum(),
+                    _ => false
                 }
             },
             _ => {
-                // FIXME: Should use exact_chuncks instead of chuncks when stable (cf. #47115)
-                for chunk in iter {
-                    if chunk.len() >= 4 {
-                        sum = sum.wrapping_add(BigEndian::read_u32(chunk));
-                    }
+                match compute_checksum(self.buf) {
+                    Some(checksum) => checksum == self.table_record.check_sum(),
+                    _ => false
                 }
             }
         }
-
-        sum == self.table_record.check_sum()
     }
 }
 

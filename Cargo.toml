@@ -9,6 +9,5 @@ keywords = ["font", "truetype", "opentype", "ttf", "otf"]
 exclude = ["/fonts/**"]
 
 [dependencies]
-nom = "^4.0"
-byteorder = "^1.2"
+nom = "^4.1"
 bitflags = "^1.0.4"

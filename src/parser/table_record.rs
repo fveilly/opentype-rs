@@ -1,4 +1,6 @@
 use nom::be_u32;
+use nom_ext::be_u32_c;
+use nom::types::CompleteByteSlice;
 use types::{Offset32, Tag};
 
 /// The Offset Table is followed immediately by the Table Record entries. Entries in the Table
@@ -53,6 +55,39 @@ named!(pub parse_table_record<&[u8],TableRecord>,
         })
     )
 );
+
+pub fn compute_checksum(i: &[u8]) -> Option<u32> {
+    let res = fold_many0!(CompleteByteSlice(i), be_u32_c, 0, |acc: u32, v|  {
+        acc.wrapping_add(v)
+    });
+
+    match res {
+        Ok((_, checksum)) => Some(checksum),
+        _ => None
+    }
+}
+
+pub fn compute_checksum_for_head(i: &[u8]) -> Option<u32> {
+    let res = do_parse!(
+        CompleteByteSlice(i),
+        s0: fold_many_m_n!(0, 2, be_u32_c, 0, |acc: u32, v| {
+            acc.wrapping_add(v)
+        }) >>
+        // Ignore the checkSumAdjustment field (32 bits)
+        take!(4) >>
+        s1: fold_many0!(be_u32_c, 0, |acc: u32, v|  {
+            acc.wrapping_add(v)
+        }) >>
+        (
+            s0.wrapping_add(s1)
+        )
+    );
+
+    match res {
+        Ok((_, checksum)) => Some(checksum),
+        _ => None
+    }
+}
 
 #[cfg(test)]
 mod tests {

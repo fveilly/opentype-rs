@@ -6,15 +6,16 @@ extern crate nom;
 #[macro_use]
 extern crate bitflags;
 
-extern crate byteorder;
-
 mod font;
 mod error;
 mod otff;
 mod table_record;
 mod types;
 
-mod parser;
+#[macro_use]
+mod nom_ext;
+
+pub mod parser;
 mod tables;
 
 pub use self::otff::OpenTypeFontFile;
