@@ -25,11 +25,32 @@ impl<'otf> TableRecord<'otf> {
         // with their actual length (not their padded length).
         let offset_limit = table_record_offset + table_record_len + table_record_len % 4;
 
-        buf.get(table_record_offset..offset_limit).map(|table_buf| {
-            TableRecord {
-                buf: table_buf,
-                table_record,
-                tag
+        buf.get(table_record_offset..offset_limit).and_then(|table_buf| {
+            match tag {
+                TableTag::Head => {
+                    match compute_checksum_for_head(table_buf) {
+                        Some(checksum) if checksum == table_record.check_sum() => {
+                            Some(TableRecord {
+                                buf: &table_buf[..table_record_len],
+                                table_record,
+                                tag
+                            })
+                        },
+                        _ => None
+                    }
+                },
+                _ => {
+                    match compute_checksum(table_buf) {
+                        Some(checksum) if checksum == table_record.check_sum() => {
+                            Some(TableRecord {
+                                buf: &table_buf[..table_record_len],
+                                table_record,
+                                tag
+                            })
+                        },
+                        _ => None
+                    }
+                }
             }
         })
     }
@@ -37,24 +58,6 @@ impl<'otf> TableRecord<'otf> {
     /// Table tag.
     pub fn tag(&self) -> TableTag {
         self.tag
-    }
-
-    /// Compute checksum of the table and verify it matches with the TableRecord value.
-    pub fn validate(&self) -> bool {
-        match self.tag {
-            TableTag::Head => {
-                match compute_checksum_for_head(self.buf) {
-                    Some(checksum) => checksum == self.table_record.check_sum(),
-                    _ => false
-                }
-            },
-            _ => {
-                match compute_checksum(self.buf) {
-                    Some(checksum) => checksum == self.table_record.check_sum(),
-                    _ => false
-                }
-            }
-        }
     }
 }
 
@@ -82,7 +85,6 @@ mod tests {
                 Tag::new(b"cmap"), 0, 0, 0)).unwrap();
 
         assert_eq!(*table_record, &[] as &[u8]);
-        assert!(table_record.validate());
     }
 
     #[test]

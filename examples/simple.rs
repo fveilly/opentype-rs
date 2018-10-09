@@ -8,8 +8,6 @@ fn main() {
 
     for font in otff {
         for table_record in font.iter() {
-            assert!(table_record.validate());
-
             match table_record.tag() {
                 TableTag::Head => {
                     let font_header_table = FontHeaderTable::parse(&table_record).unwrap();
