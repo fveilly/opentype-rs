@@ -15,6 +15,15 @@ pub struct TableRecord {
 }
 
 impl TableRecord {
+    pub(crate) fn new(table_tag: Tag, check_sum: u32, offset: Offset32, length: u32) -> TableRecord {
+        TableRecord {
+            table_tag,
+            check_sum,
+            offset,
+            length
+        }
+    }
+
     /// Table identifier
     pub fn table_tag(&self) -> Tag {
         self.table_tag
@@ -47,12 +56,13 @@ named!(pub parse_table_record<&[u8],TableRecord>,
         offset: be_u32 >>
         length: be_u32 >>
         (
-        TableRecord{
-            table_tag: Tag::new(table_tag),
-            check_sum,
-            offset,
-            length
-        })
+            TableRecord {
+                table_tag: Tag::new(table_tag),
+                check_sum,
+                offset,
+                length
+            }
+        )
     )
 );
 
