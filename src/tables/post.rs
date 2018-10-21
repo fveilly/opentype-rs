@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PostScriptTable<'otf> {
@@ -8,7 +9,9 @@ pub struct PostScriptTable<'otf> {
     table: parser::tables::PostScriptTable
 }
 
-impl<'otf> PostScriptTable<'otf> {
+impl<'otf> Parser<'otf> for PostScriptTable<'otf> {
+    type Item = PostScriptTable<'otf>;
+
     /// Parse Post Script Table.
     ///
     /// # Example
@@ -23,6 +26,7 @@ impl<'otf> PostScriptTable<'otf> {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::{PostScriptTable, PostScriptVersion};
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x6A, 0x00, 0x64, 0x00, 0x00,
@@ -54,7 +58,7 @@ impl<'otf> PostScriptTable<'otf> {
     ///     _ => assert!(false)
     /// }
     /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<PostScriptTable, Error> {
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
         let res = parser::tables::parse_post_script_table(buf)?;
 
         Ok(PostScriptTable {
@@ -63,6 +67,8 @@ impl<'otf> PostScriptTable<'otf> {
         })
     }
 }
+
+impl<'otf> TableParser<'otf> for PostScriptTable<'otf> {}
 
 impl<'otf> ops::Deref for PostScriptTable<'otf> {
     type Target = parser::tables::PostScriptTable;

@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct CharacterGlyphIndexMappingTable<'otf> {
@@ -9,22 +10,6 @@ pub struct CharacterGlyphIndexMappingTable<'otf> {
 }
 
 impl<'otf> CharacterGlyphIndexMappingTable<'otf> {
-    /// Parse Character to Glyph Index Mapping Table.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// // TODO
-    /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<CharacterGlyphIndexMappingTable, Error> {
-        let res = parser::tables::parse_character_glyph_index_mapping_table(buf)?;
-
-        Ok(CharacterGlyphIndexMappingTable {
-            buf: res.0,
-            table: res.1
-        })
-    }
-
     pub fn iter(&self) -> CharacterGlyphIndexMappingTableIterator<'otf> {
         CharacterGlyphIndexMappingTableIterator {
             buf: self.buf,
@@ -33,6 +18,28 @@ impl<'otf> CharacterGlyphIndexMappingTable<'otf> {
         }
     }
 }
+
+impl<'otf> Parser<'otf> for CharacterGlyphIndexMappingTable<'otf> {
+    type Item = CharacterGlyphIndexMappingTable<'otf>;
+
+    /// Parse Character to Glyph Index Mapping Table.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// // TODO
+    /// ```
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
+        let res = parser::tables::parse_character_glyph_index_mapping_table(buf)?;
+
+        Ok(CharacterGlyphIndexMappingTable {
+            buf: res.0,
+            table: res.1
+        })
+    }
+}
+
+impl<'otf> TableParser<'otf> for CharacterGlyphIndexMappingTable<'otf> {}
 
 impl<'otf> ops::Deref for CharacterGlyphIndexMappingTable<'otf> {
     type Target = parser::tables::CharacterGlyphIndexMappingTable;
@@ -48,9 +55,9 @@ pub struct CharacterGlyphIndexMappingTableIterator<'otf> {
 }
 
 impl<'otf> Iterator for CharacterGlyphIndexMappingTableIterator<'otf> {
-    type Item = parser::tables::EncodingRecord;
+    type Item = parser::tables::EncodingRecord<'otf>;
 
-    fn next(&mut self) -> Option<parser::tables::EncodingRecord> {
+    fn next(&mut self) -> Option<parser::tables::EncodingRecord<'otf>> {
         if self.pos >= self.num_tables {
             return None;
         }

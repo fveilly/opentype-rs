@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct MaximumProfileTable<'otf> {
@@ -8,7 +9,9 @@ pub struct MaximumProfileTable<'otf> {
     table: parser::tables::MaximumProfileTable
 }
 
-impl<'otf> MaximumProfileTable<'otf> {
+impl<'otf> Parser<'otf> for MaximumProfileTable<'otf> {
+    type Item = MaximumProfileTable<'otf>;
+
     /// Parse Maximum Profile Table.
     ///
     /// # Example
@@ -18,6 +21,7 @@ impl<'otf> MaximumProfileTable<'otf> {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::MaximumProfileTable;
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x00, 0x50, 0x00, 0x05, 0x0E];
@@ -33,6 +37,7 @@ impl<'otf> MaximumProfileTable<'otf> {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::MaximumProfileTable;
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x01, 0x00, 0x00, 0x05, 0x0E, 0x00, 0x8F, 0x00, 0x16, 0x00, 0x54, 0x00, 0x05,
@@ -57,7 +62,7 @@ impl<'otf> MaximumProfileTable<'otf> {
     /// assert_eq!(maximum_profile_table_extension.max_component_elements(), 6);
     /// assert_eq!(maximum_profile_table_extension.max_component_depth(), 1);
     /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<MaximumProfileTable, Error> {
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
         let res = parser::tables::parse_maximum_profile_table(buf)?;
 
         Ok(MaximumProfileTable {
@@ -66,6 +71,8 @@ impl<'otf> MaximumProfileTable<'otf> {
         })
     }
 }
+
+impl<'otf> TableParser<'otf> for MaximumProfileTable<'otf> {}
 
 impl<'otf> ops::Deref for MaximumProfileTable<'otf> {
     type Target = parser::tables::MaximumProfileTable;

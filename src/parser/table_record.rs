@@ -1,3 +1,4 @@
+use error::Error;
 use nom::be_u32;
 use nom_ext::be_u32_c;
 use nom::types::CompleteByteSlice;
@@ -66,19 +67,14 @@ named!(pub parse_table_record<&[u8],TableRecord>,
     )
 );
 
-pub fn compute_checksum(i: &[u8]) -> Option<u32> {
-    let res = fold_many0!(CompleteByteSlice(i), be_u32_c, 0, |acc: u32, v|  {
+pub fn compute_checksum(i: &[u8]) -> Result<u32, Error> {
+    Ok(fold_many0!(CompleteByteSlice(i), be_u32_c, 0, |acc: u32, v|  {
         acc.wrapping_add(v)
-    });
-
-    match res {
-        Ok((_, checksum)) => Some(checksum),
-        _ => None
-    }
+    })?.1)
 }
 
-pub fn compute_checksum_for_head(i: &[u8]) -> Option<u32> {
-    let res = do_parse!(
+pub fn compute_checksum_for_head(i: &[u8]) -> Result<u32, Error> {
+    Ok(do_parse!(
         CompleteByteSlice(i),
         s0: fold_many_m_n!(0, 2, be_u32_c, 0, |acc: u32, v| {
             acc.wrapping_add(v)
@@ -91,12 +87,7 @@ pub fn compute_checksum_for_head(i: &[u8]) -> Option<u32> {
         (
             s0.wrapping_add(s1)
         )
-    );
-
-    match res {
-        Ok((_, checksum)) => Some(checksum),
-        _ => None
-    }
+    )?.1)
 }
 
 #[cfg(test)]

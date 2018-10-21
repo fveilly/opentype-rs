@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 pub use parser::tables::Platform;
 
@@ -10,7 +11,9 @@ pub struct NamingTable<'otf> {
     table: parser::tables::NamingTable
 }
 
-impl<'otf> NamingTable<'otf> {
+impl<'otf> Parser<'otf> for NamingTable<'otf> {
+    type Item = NamingTable<'otf>;
+
     /// Parse Naming Table.
     ///
     /// # Example
@@ -20,6 +23,7 @@ impl<'otf> NamingTable<'otf> {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::{NamingTable, Platform, MacintoshEncoding, MacintoshLanguage, NameId};
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x00, 0x00, 0x1A, 0x01, 0x3E, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -71,7 +75,7 @@ impl<'otf> NamingTable<'otf> {
     /// ```
     /// // TODO
     /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<NamingTable, Error> {
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
         let res = parser::tables::parse_naming_table(buf)?;
 
         Ok(NamingTable {
@@ -80,6 +84,8 @@ impl<'otf> NamingTable<'otf> {
         })
     }
 }
+
+impl<'otf> TableParser<'otf> for NamingTable<'otf> {}
 
 impl<'otf> ops::Deref for NamingTable<'otf> {
     type Target = parser::tables::NamingTable;

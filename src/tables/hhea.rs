@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct HorizontalHeaderTable<'otf> {
@@ -8,7 +9,9 @@ pub struct HorizontalHeaderTable<'otf> {
     table: parser::tables::HorizontalHeaderTable
 }
 
-impl<'otf> HorizontalHeaderTable<'otf> {
+impl<'otf> Parser<'otf> for HorizontalHeaderTable<'otf> {
+    type Item = HorizontalHeaderTable<'otf>;
+
     /// Parse Horizontal Header Table.
     ///
     /// # Example
@@ -17,6 +20,7 @@ impl<'otf> HorizontalHeaderTable<'otf> {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::HorizontalHeaderTable;
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x01, 0x00, 0x00, 0x07, 0x6C, 0xFE, 0x0C, 0x00, 0x00, 0x09, 0x49, 0xFA, 0x1B,
@@ -38,7 +42,7 @@ impl<'otf> HorizontalHeaderTable<'otf> {
     /// assert_eq!(horizontal_header_table.metric_data_format(),  0);
     /// assert_eq!(horizontal_header_table.number_of_hmetrics(), 1294);
     /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<HorizontalHeaderTable, Error> {
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
         let res = parser::tables::parse_horizontal_header_table(buf)?;
 
         Ok(HorizontalHeaderTable {
@@ -47,6 +51,8 @@ impl<'otf> HorizontalHeaderTable<'otf> {
         })
     }
 }
+
+impl<'otf> TableParser<'otf> for HorizontalHeaderTable<'otf> {}
 
 impl<'otf> ops::Deref for HorizontalHeaderTable<'otf> {
     type Target = parser::tables::HorizontalHeaderTable;

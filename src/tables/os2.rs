@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Os2<'otf> {
@@ -8,7 +9,9 @@ pub struct Os2<'otf> {
     table: parser::tables::Os2
 }
 
-impl<'otf> Os2<'otf> {
+impl<'otf> Parser<'otf> for Os2<'otf> {
+    type Item = Os2<'otf>;
+
     /// Parse OS/2 Table.
     ///
     /// # Example
@@ -29,6 +32,7 @@ impl<'otf> Os2<'otf> {
     ///
     /// use otf::{Os2, Os2Version, FontSelectionFlags, CodePageRange, UnicodeRange, Panose};
     /// use otf::Tag;
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x03, 0x04, 0x86, 0x01, 0x90, 0x00, 0x05, 0x00, 0x00, 0x05, 0x9A, 0x05, 0x33,
@@ -84,7 +88,7 @@ impl<'otf> Os2<'otf> {
     /// ```
     /// // TODO
     /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<Os2, Error> {
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
         let res = parser::tables::parse_os2(buf)?;
 
         Ok(Os2 {
@@ -93,6 +97,8 @@ impl<'otf> Os2<'otf> {
         })
     }
 }
+
+impl<'otf> TableParser<'otf> for Os2<'otf> {}
 
 impl<'otf> ops::Deref for Os2<'otf> {
     type Target = parser::tables::Os2;

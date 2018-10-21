@@ -10,6 +10,7 @@ mod font;
 mod error;
 mod otff;
 mod table_record;
+pub mod traits;
 mod types;
 
 #[macro_use]

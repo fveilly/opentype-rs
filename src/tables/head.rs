@@ -1,6 +1,7 @@
 use parser;
 use std::ops;
 use error::Error;
+use traits::{Parser, TableParser};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct FontHeaderTable<'otf> {
@@ -8,7 +9,9 @@ pub struct FontHeaderTable<'otf> {
     table: parser::tables::FontHeaderTable
 }
 
-impl<'otf> FontHeaderTable<'otf> {
+impl<'otf> Parser<'otf> for FontHeaderTable<'otf> {
+    type Item = FontHeaderTable<'otf>;
+
     /// Parse Font Header Table.
     ///
     /// # Example
@@ -18,6 +21,7 @@ impl<'otf> FontHeaderTable<'otf> {
     ///
     /// use otf::FontHeaderTable;
     /// use otf::Rect;
+    /// use otf::traits::Parser;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x23, 0x12, 0x8A, 0x7F, 0x70, 0x48, 0x5F, 0x0F,
@@ -40,7 +44,7 @@ impl<'otf> FontHeaderTable<'otf> {
     /// assert_eq!(font_header_table.index_to_loc_format(),  0);
     /// assert_eq!(font_header_table.glyph_data_format(), 0);
     /// ```
-    pub fn parse(buf: &'otf[u8]) -> Result<FontHeaderTable, Error> {
+    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
         let res = parser::tables::parse_font_header_table(buf)?;
 
         Ok(FontHeaderTable {
@@ -49,6 +53,8 @@ impl<'otf> FontHeaderTable<'otf> {
         })
     }
 }
+
+impl<'otf> TableParser<'otf> for FontHeaderTable<'otf> {}
 
 impl<'otf> ops::Deref for FontHeaderTable<'otf> {
     type Target = parser::tables::FontHeaderTable;

@@ -64,7 +64,7 @@ impl<'otf> Iterator for FontIterator<'otf> {
     /// Try to parse the next TableRecord.
     ///
     /// If the parsing fail or if the last TableRecord has been parsed, return None. If the
-    /// TableRecord contains corrupted data, skip it and try to parse the next one.
+    /// table tag is unknown, skip and try to parse the next one.
     fn next(&mut self) -> Option<TableRecord<'otf>> {
         loop {
             if self.pos >= self.num_tables {
@@ -76,8 +76,9 @@ impl<'otf> Iterator for FontIterator<'otf> {
                     self.remainder = bytes;
                     self.pos = self.pos + 1;
 
-                    if let Some(table_record) = TableRecord::new(self.buf, table_record) {
-                        return Some(table_record);
+                    if let Some(tag) = TableTag::parse(table_record.table_tag()) {
+                        return Some(TableRecord::new(self.buf, tag, table_record.check_sum(),
+                                                table_record.offset() as usize, table_record.length() as usize));
                     }
                 },
                 _ => break

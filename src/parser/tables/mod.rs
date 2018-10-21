@@ -17,3 +17,6 @@ pub use self::maxp::*;
 pub use self::name::*;
 pub use self::os2::*;
 pub use self::post::*;
+
+/// A glyph identifier.
+pub type GlyphId = u16;
