@@ -1,5 +1,6 @@
 use nom::{be_u8, be_i16, be_u16, be_u24, be_u32};
 use parser::tables::name::Platform;
+use std::collections::HashMap;
 use std::fmt;
 use super::GlyphId;
 
@@ -67,7 +68,7 @@ impl<'otf> EncodingRecord<'otf> {
     }
 
     /// Subtable for this encoding.
-    pub fn character_to_glyph_index_mapping_subtable(&self) -> &CharacterGlyphIndexMappingSubtable {
+    pub fn character_to_glyph_index_mapping_subtable(&self) -> &CharacterGlyphIndexMappingSubtable<'otf> {
         &self.character_to_glyph_index_mapping_subtable
     }
 }
@@ -77,10 +78,10 @@ impl<'otf> EncodingRecord<'otf> {
 pub enum CharacterGlyphIndexMappingSubtable<'otf> {
     Format_0(CharacterGlyphIndexMappingSubtable0<'otf>),
     Format_2(CharacterGlyphIndexMappingSubtable2),
-    Format_4(CharacterGlyphIndexMappingSubtable4),
+    Format_4(CharacterGlyphIndexMappingSubtable4<'otf>),
     Format_6(CharacterGlyphIndexMappingSubtable6<'otf>),
     Format_8(CharacterGlyphIndexMappingSubtable8<'otf>),
-    Format_10(CharacterGlyphIndexMappingSubtable10),
+    Format_10(CharacterGlyphIndexMappingSubtable10<'otf>),
     Format_12(CharacterGlyphIndexMappingSubtable12),
     Format_13(CharacterGlyphIndexMappingSubtable13),
     Format_14(CharacterGlyphIndexMappingSubtable14)
@@ -101,14 +102,14 @@ impl<'otf> CharacterGlyphIndexMappingSubtable<'otf> {
         }
     }
 
-    pub fn map(&self, character_code: u32) -> Option<GlyphId> {
+    pub fn get_glyph_id(&self, character_code: u32) -> Option<GlyphId> {
         match self {
             CharacterGlyphIndexMappingSubtable::Format_0(subtable) => {
                 if character_code > u32::from(u8::max_value()) {
                     return None;
                 }
 
-                Some(subtable.map(character_code as u8))
+                Some(subtable.get_glyph_id(character_code as u8))
             },
             CharacterGlyphIndexMappingSubtable::Format_2(subtable) => None,
             CharacterGlyphIndexMappingSubtable::Format_4(subtable) => None,
@@ -117,13 +118,27 @@ impl<'otf> CharacterGlyphIndexMappingSubtable<'otf> {
                     return None;
                 }
 
-                subtable.map(character_code as u16)
+                subtable.get_glyph_id(character_code as u16)
             },
             CharacterGlyphIndexMappingSubtable::Format_8(subtable) => None,
             CharacterGlyphIndexMappingSubtable::Format_10(subtable) => None,
             CharacterGlyphIndexMappingSubtable::Format_12(subtable) => None,
             CharacterGlyphIndexMappingSubtable::Format_13(subtable) => None,
             CharacterGlyphIndexMappingSubtable::Format_14(subtable) => None
+        }
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        match self {
+            CharacterGlyphIndexMappingSubtable::Format_0(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_2(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_4(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_6(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_8(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_10(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_12(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_13(subtable) => subtable.mapping(),
+            CharacterGlyphIndexMappingSubtable::Format_14(subtable) => subtable.mapping(),
         }
     }
 }
@@ -146,9 +161,17 @@ impl<'otf> CharacterGlyphIndexMappingSubtable0<'otf> {
         &self.glyph_id_array
     }
 
-    pub fn map(&self, character_code: u8) -> GlyphId {
+    pub fn get_glyph_id(&self, character_code: u8) -> GlyphId {
         debug_assert!(self.glyph_id_array.len() == 256);
         GlyphId::from(self.glyph_id_array[usize::from(character_code)])
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        let mut mapping = HashMap::new();
+        for (i, glyph_id) in self.glyph_id_array.iter().enumerate() {
+            mapping.insert(i as u32, GlyphId::from(*glyph_id));
+        }
+        mapping
     }
 }
 
@@ -180,6 +203,10 @@ impl CharacterGlyphIndexMappingSubtable2 {
     /// Array that maps high bytes to subHeaders: value is subHeader index × 8.
     pub fn sub_header_keys(&self) -> &[u16] {
         &self.sub_header_keys
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        unimplemented!()
     }
 }
 
@@ -236,7 +263,7 @@ impl CharacterGlyphIndexMappingSubtable2SubHeaderRecord {
 /// - Four parallel arrays describe the segments (one segment for each contiguous range of codes);
 /// - A variable-length array of glyph IDs (unsigned words).
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct CharacterGlyphIndexMappingSubtable4 {
+pub struct CharacterGlyphIndexMappingSubtable4<'otf> {
     language: u16,
     seg_count: u16,
     search_range: u16,
@@ -245,11 +272,11 @@ pub struct CharacterGlyphIndexMappingSubtable4 {
     end_code: Vec<u16>,
     start_code: Vec<u16>,
     id_delta: Vec<i16>,
-    id_range_offset: Vec<u16>
-    // TODO: glyphIdArray
+    id_range_offset: Vec<u16>,
+    glyph_id_array: &'otf[u8]
 }
 
-impl CharacterGlyphIndexMappingSubtable4 {
+impl<'otf> CharacterGlyphIndexMappingSubtable4<'otf> {
     /// For requirements on use of the language field.
     pub fn language(&self) -> u16 {
         self.language
@@ -295,8 +322,33 @@ impl CharacterGlyphIndexMappingSubtable4 {
         &self.id_range_offset
     }
 
-    pub fn map(&self, character_code: u16) -> Option<GlyphId> {
+    pub fn get_glyph_id(&self, character_code: u16) -> Option<GlyphId> {
         None
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        let mut mapping = HashMap::new();
+        for (i, tuple) in self.start_code.iter()
+            .zip(self.end_code.iter())
+            .zip(self.id_delta.iter())
+            .zip(self.id_range_offset.iter())
+            .enumerate() {
+            let (((&start_code, &end_code), &id_delta), &id_range_offset) = tuple;
+
+            for j in start_code..(end_code + 1) {
+                let glyph_id = if id_range_offset > 0 {
+                    let offset = (id_range_offset / 2 + (j - start_code)) - (self.seg_count - i as u16) as u16;
+                    match self.glyph_id_array.get(offset as usize) {
+                        Some(&glyph_id) => glyph_id as u16,
+                        _ => continue
+                    }
+                } else {
+                    id_delta.wrapping_add(j as i16) as u16
+                };
+                mapping.insert(j as u32, glyph_id);
+            }
+        }
+        mapping
     }
 }
 
@@ -329,7 +381,7 @@ impl<'otf> CharacterGlyphIndexMappingSubtable6<'otf> {
         &self.glyph_id_array
     }
 
-    pub fn map(&self, character_code: u16) -> Option<GlyphId> {
+    pub fn get_glyph_id(&self, character_code: u16) -> Option<GlyphId> {
         if character_code < self.first_code || character_code >= self.first_code + self.entry_count {
             return None;
         }
@@ -346,6 +398,14 @@ impl<'otf> CharacterGlyphIndexMappingSubtable6<'otf> {
             Ok((_, glyph_id)) => Some(glyph_id),
             _ => None
         }
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        let mut mapping = HashMap::new();
+        for (i, glyph_id) in self.glyph_id_array.iter().enumerate() {
+            mapping.insert(self.first_code as u32 + i as u32, GlyphId::from(*glyph_id));
+        }
+        mapping
     }
 }
 
@@ -384,6 +444,10 @@ impl<'otf> CharacterGlyphIndexMappingSubtable8<'otf> {
     /// Array of SequentialMapGroup records.
     pub fn groups(&self) -> &Vec<SequentialMapGroup> {
         &self.groups
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        unimplemented!()
     }
 }
 
@@ -473,13 +537,13 @@ impl ConstantMapGroup {
 /// for fonts that support only a contiguous range of Unicode supplementary-plane characters,
 /// but such fonts are rare.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct CharacterGlyphIndexMappingSubtable10 {
+pub struct CharacterGlyphIndexMappingSubtable10<'otf> {
     language: u16,
     start_char_code: u32,
-    glyphs: Vec<u16>
+    glyphs: &'otf[u8]
 }
 
-impl<'otf> CharacterGlyphIndexMappingSubtable10 {
+impl<'otf> CharacterGlyphIndexMappingSubtable10<'otf> {
     /// For requirements on use of the language field.
     pub fn language(&self) -> u16 {
         self.language
@@ -491,8 +555,16 @@ impl<'otf> CharacterGlyphIndexMappingSubtable10 {
     }
 
     /// Array of glyph indices for the character codes covered.
-    pub fn glyphs(&self) -> &[u16] {
-        &self.glyphs
+    pub fn glyphs(&self) -> &'otf[u8] {
+        self.glyphs
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        let mut mapping = HashMap::new();
+        for (i, glyph_id) in self.glyphs.iter().enumerate() {
+            mapping.insert(self.start_char_code as u32 + i as u32, GlyphId::from(*glyph_id));
+        }
+        mapping
     }
 }
 
@@ -519,6 +591,19 @@ impl CharacterGlyphIndexMappingSubtable12 {
     pub fn groups(&self) -> &Vec<SequentialMapGroup> {
         &self.groups
     }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        let mut mapping = HashMap::new();
+        for group in &self.groups {
+            for i in 0..(group.end_char_code() - group.start_char_code() + 1) {
+                mapping.insert(
+                    group.start_char_code() + i,
+                    group.start_glyph_id() as u16 + i as u16,
+                );
+            }
+        }
+        mapping
+    }
 }
 
 /// This subtable provides for situations in which the same glyph is used for hundreds or even
@@ -544,6 +629,19 @@ impl CharacterGlyphIndexMappingSubtable13 {
     pub fn groups(&self) -> &Vec<ConstantMapGroup> {
         &self.groups
     }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        let mut mapping = HashMap::new();
+        for group in &self.groups {
+            for i in 0..(group.end_char_code() - group.start_char_code() + 1) {
+                mapping.insert(
+                    group.start_char_code() + i,
+                    group.glyph_id() as u16,
+                );
+            }
+        }
+        mapping
+    }
 }
 
 /// Subtable format 14 specifies the Unicode Variation Sequences (UVSes) supported by the font.
@@ -565,6 +663,10 @@ impl CharacterGlyphIndexMappingSubtable14 {
     /// Array of VariationSelector records.
     pub fn var_selector(&self) -> &Vec<VariationSelectorRecord> {
         &self.var_selector
+    }
+
+    pub fn mapping(&self) -> HashMap<u32, GlyphId> {
+        unimplemented!()
     }
 }
 
@@ -791,6 +893,33 @@ named!(parse_character_to_glyph_index_mapping_subtable_2_sub_header_record<&[u8]
     )
 );
 
+fn get_glyph_id_count(seg_count: u16, start_code: &Vec<u16>, end_code: &Vec<u16>, id_range_offset: &Vec<u16>) -> Option<usize> {
+    // The final start code and end code values must be 0xFFFF
+    if start_code.last() != Some(&0xffff) || end_code.last() != Some(&0xffff) {
+        return None
+    }
+
+    let mut length: u16 = 0;
+
+    for (i, tuple) in start_code.iter()
+        .zip(end_code.iter())
+        .zip(id_range_offset.iter())
+        .enumerate() {
+        let ((&start_code, &end_code), &id_range_offset) = tuple;
+
+        for j in start_code..(end_code + 1) {
+            if id_range_offset > 0 {
+                let end = (id_range_offset / 2 + (j - start_code)) - (seg_count - i as u16) as u16 + 1;
+                if end > length {
+                    length = end;
+                }
+            }
+        }
+    }
+
+    Some(length as usize)
+}
+
 named!(pub parse_character_to_glyph_index_mapping_subtable_4<&[u8],CharacterGlyphIndexMappingSubtable>,
     do_parse!(
         verify!(be_u16, |format| format == 4) >>
@@ -807,6 +936,8 @@ named!(pub parse_character_to_glyph_index_mapping_subtable_4<&[u8],CharacterGlyp
         start_code: count!(be_u16, seg_count as usize) >>
         id_delta: count!(be_i16, seg_count as usize) >>
         id_range_offset: count!(be_u16, seg_count as usize) >>
+        glyph_id_count: expr_opt!(get_glyph_id_count(seg_count, &start_code, &end_code, &id_range_offset)) >>
+        glyph_id_array: take!(glyph_id_count) >>
         (
             CharacterGlyphIndexMappingSubtable::Format_4(CharacterGlyphIndexMappingSubtable4 {
                 language,
@@ -817,7 +948,8 @@ named!(pub parse_character_to_glyph_index_mapping_subtable_4<&[u8],CharacterGlyp
                 end_code,
                 start_code,
                 id_delta,
-                id_range_offset
+                id_range_offset,
+                glyph_id_array
             })
         )
     )
@@ -899,7 +1031,8 @@ named!(parse_character_to_glyph_index_mapping_subtable_10<&[u8],CharacterGlyphIn
         length: be_u32 >>
         language: be_u32 >>
         start_char_code: be_u32 >>
-        glyphs: length_count!(be_u32, be_u16) >>
+        num_chars: be_u32 >>
+        glyphs: take!(num_chars * 2) >>
         (
             CharacterGlyphIndexMappingSubtable::Format_10(CharacterGlyphIndexMappingSubtable10 {
                 language: language as u16,
