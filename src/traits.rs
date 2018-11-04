@@ -1,5 +1,5 @@
 use error::Error;
-use table_record::TableRecord;
+use table::Table;
 
 pub trait Parser<'otf> {
     type Item;
@@ -8,7 +8,7 @@ pub trait Parser<'otf> {
 }
 
 pub trait TableParser<'otf> : Parser<'otf> {
-    fn parse_table(table_record: &TableRecord<'otf>) -> Result<Self::Item, Error> {
+    fn parse_table(table_record: &Table<'otf>) -> Result<Self::Item, Error> {
         Self::parse(table_record.get_table_as_slice()?)
     }
 }

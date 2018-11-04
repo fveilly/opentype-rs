@@ -1,107 +1,114 @@
 use error::Error;
-use parser;
-use types::{TableTag, Tag};
-use std::{fmt, cmp, ops};
-use parser::table_record::{compute_checksum, compute_checksum_for_head};
+use nom::be_u32;
+use nom_ext::be_u32_c;
+use nom::types::CompleteByteSlice;
+use tables::Tag;
+use types::Offset32;
 
-pub struct TableRecord<'otf> {
-    buf: &'otf[u8],
-    tag: TableTag,
+/// The Offset Table is followed immediately by the Table Record entries. Entries in the Table
+/// Record must be sorted in ascending order by tag. Offset values in the Table Record are measured
+/// from the start of the font file.
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub struct TableRecord {
+    table_tag: Tag,
     check_sum: u32,
-    offset: usize,
-    length: usize
+    offset: Offset32,
+    length: u32
 }
 
-impl<'otf> TableRecord<'otf> {
-    pub(crate) fn new(buf: &'otf[u8], tag: TableTag, check_sum: u32, offset: usize, length: usize) -> TableRecord<'otf> {
+impl TableRecord {
+    pub(crate) fn new(table_tag: Tag, check_sum: u32, offset: Offset32, length: u32) -> TableRecord {
         TableRecord {
-            buf,
-            tag,
+            table_tag,
             check_sum,
             offset,
             length
         }
     }
 
-    /// Get the slice of the table.
-    ///
-    /// If the table record content is corrupted or the checksum does not match this method
-    /// shall return None. Else return the actual slice of the table non padded.
-    pub(crate) fn get_table_as_slice(&self) -> Result<&'otf[u8], Error> {
-        // All tables must begin on four-byte boundaries, and any remaining space between tables
-        // is padded with zeros. The length of all tables should be recorded in the table record
-        // with their actual length (not their padded length).
-        let offset_limit = self.offset + self.length + self.length % 4;
+    /// Table identifier
+    pub fn table_tag(&self) -> Tag {
+        self.table_tag
+    }
 
-        let table_padded_buf = self.buf.get(self.offset..offset_limit).ok_or(Error::new("Table slice out of bounds"))?;
+    /// CheckSum for this table
+    pub fn check_sum(&self) -> u32 {
+        self.check_sum
+    }
 
-        match self.tag {
-            TableTag::Head => {
-                let checksum = compute_checksum_for_head(table_padded_buf)?;
+    /// Offset from beginning of TrueType font file
+    pub fn offset(&self) -> Offset32 {
+        self.offset
+    }
 
-                if (checksum != self.check_sum) {
-                    return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.check_sum, checksum)))
-                }
+    /// Length of this table
+    pub fn length(&self) -> u32 {
+        self.length
+    }
+}
 
-                Ok(&table_padded_buf[..self.length])
-            },
-            _ => {
-                let checksum = compute_checksum(table_padded_buf)?;
+named_args!(pub parse_table_records(num_tables: u16)<&[u8],Vec<TableRecord>>,
+    count!(parse_table_record, num_tables as usize)
+);
 
-                if (checksum != self.check_sum) {
-                    return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.check_sum, checksum)))
-                }
-
-                Ok(&table_padded_buf[..self.length])
+named!(pub parse_table_record<&[u8],TableRecord>,
+    do_parse!(
+        table_tag: take!(4) >>
+        check_sum: be_u32 >>
+        offset: be_u32 >>
+        length: be_u32 >>
+        (
+            TableRecord {
+                table_tag: Tag::new(table_tag),
+                check_sum,
+                offset,
+                length
             }
-        }
-    }
+        )
+    )
+);
 
-    /// Table tag.
-    pub fn tag(&self) -> TableTag {
-        self.tag
-    }
+pub fn compute_checksum(i: &[u8]) -> Result<u32, Error> {
+    Ok(fold_many0!(CompleteByteSlice(i), be_u32_c, 0, |acc: u32, v|  {
+        acc.wrapping_add(v)
+    })?.1)
+}
+
+pub fn compute_checksum_for_head(i: &[u8]) -> Result<u32, Error> {
+    Ok(do_parse!(
+        CompleteByteSlice(i),
+        s0: fold_many_m_n!(0, 2, be_u32_c, 0, |acc: u32, v| {
+            acc.wrapping_add(v)
+        }) >>
+        // Ignore the checkSumAdjustment field (32 bits)
+        take!(4) >>
+        s1: fold_many0!(be_u32_c, 0, |acc: u32, v|  {
+            acc.wrapping_add(v)
+        }) >>
+        (
+            s0.wrapping_add(s1)
+        )
+    )?.1)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use nom::{Err, ErrorKind, Context};
+    use tables::TableTag;
+
+    static ROBOTO_REGULAR: &[u8] = include_bytes!("../fonts/Roboto/Roboto-Regular.ttf");
 
     #[test]
     fn case_table_record() {
-        let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x00,
-            0x00, 0x00, 0x00, 0x00];
+        let expected = (&b""[..], TableRecord {
+            table_tag: Tag::from(TableTag::Gdef),
+            check_sum: 3024269442,
+            offset: 141532,
+            length: 610
+        });
 
-        assert_eq!(TableRecord::new(
-            bytes, TableTag::Cmap,1907845740, 0, 7).get_table_as_slice().unwrap(), &bytes[..7]);
-    }
-
-    #[test]
-    fn case_table_record_empty() {
-        let table_record = TableRecord::new(
-            &[] as &[u8], TableTag::Cmap,0, 0, 0);
-
-        assert_eq!(table_record.get_table_as_slice().unwrap(), &[] as &[u8]);
-    }
-
-    #[test]
-    fn case_table_record_invalid_offset() {
-        let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
-            0x6F, 0x72, 0x6C, 0x64];
-
-        assert!(TableRecord::new(
-            bytes, TableTag::Cmap,0, 13, 5).get_table_as_slice().is_err());
-    }
-
-    #[test]
-    fn case_table_record_invalid_length() {
-        let bytes: &[u8]  = &[0x05, 0x48, 0x65, 0x6C, 0x6C, 0x6F, 0x05, 0x57,
-            0x6F, 0x72, 0x6C, 0x64];
-
-        assert!(TableRecord::new(
-            bytes, TableTag::Cmap,0, 0, 13).get_table_as_slice().is_err());
-
-        assert!(TableRecord::new(
-            bytes, TableTag::Cmap,0, 4, 7).get_table_as_slice().is_err());
+        let res = parse_table_record(&ROBOTO_REGULAR[12..28]).unwrap();
+        assert_eq!(res,  expected);
     }
 }

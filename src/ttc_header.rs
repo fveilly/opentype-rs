@@ -1,5 +1,6 @@
 use nom::{be_u16, be_u32};
-use types::{Offset32, Tag};
+use tables::Tag;
+use types::Offset32;
 
 /// The purpose of the TTC Header table is to locate the different Offset Tables within a TTC file.
 /// The TTC Header is located at the beginning of the TTC file (offset = 0). It consists of an
@@ -105,7 +106,7 @@ named!(parse_ttc_header_v2<&[u8],TTCHeader>,
 mod tests {
     use super::*;
     use nom::{Err, ErrorKind, Context};
-    use types::TableTag;
+    use tables::TableTag;
 
     #[test]
     fn case_ttc_header_v1_0() {

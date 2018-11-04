@@ -1,17 +1,18 @@
-use parser;
-use table_record::TableRecord;
-use types::{Tag, TableTag};
 use error::Error;
+use offset_table::OffsetTable;
 use std::ops;
+use table::Table;
+use tables::{TableTag, Tag};
+use table_record::parse_table_record;
 
 pub struct Font<'otf> {
     buf: &'otf[u8],
     remainder: &'otf[u8],
-    offset_table: parser::OffsetTable
+    offset_table: OffsetTable
 }
 
 impl<'otf> Font<'otf> {
-    pub(crate) fn new(buf: &'otf[u8], remainder: &'otf[u8], offset_table: parser::OffsetTable) -> Font<'otf> {
+    pub(crate) fn new(buf: &'otf[u8], remainder: &'otf[u8], offset_table: OffsetTable) -> Font<'otf> {
         Font {
             buf,
             remainder,
@@ -31,7 +32,7 @@ impl<'otf> Font<'otf> {
 }
 
 impl<'otf> IntoIterator for Font<'otf> {
-    type Item = TableRecord<'otf>;
+    type Item = Table<'otf>;
     type IntoIter = FontIterator<'otf>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -45,7 +46,7 @@ impl<'otf> IntoIterator for Font<'otf> {
 }
 
 impl<'otf> ops::Deref for Font<'otf> {
-    type Target = parser::OffsetTable;
+    type Target = OffsetTable;
     fn deref(&self) -> &Self::Target {
         &self.offset_table
     }
@@ -59,25 +60,25 @@ pub struct FontIterator<'otf> {
 }
 
 impl<'otf> Iterator for FontIterator<'otf> {
-    type Item = TableRecord<'otf>;
+    type Item = Table<'otf>;
 
     /// Try to parse the next TableRecord.
     ///
     /// If the parsing fail or if the last TableRecord has been parsed, return None. If the
     /// table tag is unknown, skip and try to parse the next one.
-    fn next(&mut self) -> Option<TableRecord<'otf>> {
+    fn next(&mut self) -> Option<Table<'otf>> {
         loop {
             if self.pos >= self.num_tables {
                 break;
             }
 
-            match parser::parse_table_record(self.remainder) {
+            match parse_table_record(self.remainder) {
                 Ok((bytes, table_record)) => {
                     self.remainder = bytes;
                     self.pos = self.pos + 1;
 
                     if let Some(tag) = TableTag::parse(table_record.table_tag()) {
-                        return Some(TableRecord::new(self.buf, tag, table_record.check_sum(),
+                        return Some(Table::new(self.buf, tag, table_record.check_sum(),
                                                 table_record.offset() as usize, table_record.length() as usize));
                     }
                 },
