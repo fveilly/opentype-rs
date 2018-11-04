@@ -65,7 +65,7 @@ opentype-rs is in early stage and the public APIs are still likely to change.
 - [ ] **cvt**: Control Value Table (optional table)
 - [ ] **fpgm**: Font program (optional table)
 - [ ] **glyf**: Glyph data
-- [ ] **loca**: Index to location
+- [x] **loca**: Index to location
 - [ ] **prep**: CVT Program (optional table)
 - [ ] **gasp**: Grid-fitting/Scan-conversion (optional table)
 
