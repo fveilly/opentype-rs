@@ -17,6 +17,7 @@ pub struct TableRecord {
 }
 
 impl TableRecord {
+    #[allow(dead_code)]
     pub(crate) fn new(table_tag: Tag, check_sum: u32, offset: Offset32, length: u32) -> TableRecord {
         TableRecord {
             table_tag,

@@ -13,7 +13,6 @@ use ttc_header::{TTCHeader, parse_ttc_header};
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum OpenTypeFontKind {
     Font(OffsetTable),
-
     FontCollection(TTCHeader)
 }
 

@@ -28,7 +28,7 @@ pub enum IndexToLocationTable {
 }
 
 impl<'otf> IndexToLocationTable {
-    fn get_glyf_offset(&self, glyph_index: u32) -> Option<u32> {
+    pub fn get_glyf_offset(&self, glyph_index: u32) -> Option<u32> {
         match self {
             IndexToLocationTable::Short(offsets) => offsets.get(glyph_index as usize).map(
                 |offset| *offset as u32),

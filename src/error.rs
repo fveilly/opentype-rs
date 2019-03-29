@@ -4,19 +4,20 @@ use nom::Err;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ErrorKindExt {
-    // TODO: Unify into one generic error with data
-    InvalidSfntVersion,
-    InvalidTableTag,
     InvalidIndexToLocFormat
 }
 
 impl ErrorKindExt {
     pub fn description(&self) -> &str {
         match *self {
-            ErrorKindExt::InvalidSfntVersion => "Invalid OpenType fonts content type",
-            ErrorKindExt::InvalidTableTag => "Invalid table tag",
             ErrorKindExt::InvalidIndexToLocFormat => "Invalid indexToLocFormat entry",
         }
+    }
+}
+
+impl Display for ErrorKindExt {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str(self.description())
     }
 }
 
