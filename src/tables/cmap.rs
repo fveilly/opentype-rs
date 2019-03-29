@@ -2,7 +2,6 @@ use error::Error;
 use nom::{be_u8, be_i16, be_u16, be_u24, be_u32};
 use tables::name::Platform;
 use std::collections::HashMap;
-use std::fmt;
 use traits::{Parser, TableParser};
 use super::GlyphId;
 
@@ -168,7 +167,7 @@ impl<'otf> CharacterGlyphIndexMappingSubtable<'otf> {
             CharacterGlyphIndexMappingSubtable::Format_10(subtable) => subtable.language(),
             CharacterGlyphIndexMappingSubtable::Format_12(subtable) => subtable.language(),
             CharacterGlyphIndexMappingSubtable::Format_13(subtable) => subtable.language(),
-            CharacterGlyphIndexMappingSubtable::Format_14(subtable) => 0
+            CharacterGlyphIndexMappingSubtable::Format_14(_subtable) => 0
         }
     }
 
@@ -181,8 +180,8 @@ impl<'otf> CharacterGlyphIndexMappingSubtable<'otf> {
 
                 Some(subtable.get_glyph_id(character_code as u8))
             },
-            CharacterGlyphIndexMappingSubtable::Format_2(subtable) => None,
-            CharacterGlyphIndexMappingSubtable::Format_4(subtable) => None,
+            CharacterGlyphIndexMappingSubtable::Format_2(_subtable) => None,
+            CharacterGlyphIndexMappingSubtable::Format_4(_subtable) => None,
             CharacterGlyphIndexMappingSubtable::Format_6(subtable) => {
                 if character_code > u32::from(u16::max_value()) {
                     return None;
@@ -190,11 +189,11 @@ impl<'otf> CharacterGlyphIndexMappingSubtable<'otf> {
 
                 subtable.get_glyph_id(character_code as u16)
             },
-            CharacterGlyphIndexMappingSubtable::Format_8(subtable) => None,
-            CharacterGlyphIndexMappingSubtable::Format_10(subtable) => None,
-            CharacterGlyphIndexMappingSubtable::Format_12(subtable) => None,
-            CharacterGlyphIndexMappingSubtable::Format_13(subtable) => None,
-            CharacterGlyphIndexMappingSubtable::Format_14(subtable) => None
+            CharacterGlyphIndexMappingSubtable::Format_8(_subtable) => None,
+            CharacterGlyphIndexMappingSubtable::Format_10(_subtable) => None,
+            CharacterGlyphIndexMappingSubtable::Format_12(_subtable) => None,
+            CharacterGlyphIndexMappingSubtable::Format_13(_subtable) => None,
+            CharacterGlyphIndexMappingSubtable::Format_14(_subtable) => None
         }
     }
 
@@ -392,7 +391,7 @@ impl<'otf> CharacterGlyphIndexMappingSubtable4<'otf> {
         &self.id_range_offset
     }
 
-    pub fn get_glyph_id(&self, character_code: u16) -> Option<GlyphId> {
+    pub fn get_glyph_id(&self, _character_code: u16) -> Option<GlyphId> {
         None
     }
 
@@ -919,7 +918,7 @@ named!(pub parse_character_to_glyph_index_mapping_subtable<&[u8],CharacterGlyphI
 named!(parse_character_to_glyph_index_mapping_subtable_0<&[u8],CharacterGlyphIndexMappingSubtable>,
     do_parse!(
         verify!(be_u16, |format| format == 0) >>
-        length: be_u16 >>
+        _length: be_u16 >>
         language: be_u16 >>
         glyph_id_array: take!(256) >>
         (
@@ -934,7 +933,7 @@ named!(parse_character_to_glyph_index_mapping_subtable_0<&[u8],CharacterGlyphInd
 named!(parse_character_to_glyph_index_mapping_subtable_2<&[u8],CharacterGlyphIndexMappingSubtable>,
     do_parse!(
         verify!(be_u16, |format| format == 2) >>
-        length: be_u16 >>
+        _length: be_u16 >>
         language: be_u16 >>
         sub_header_keys: count!(be_u16, 256) >>
         (
@@ -993,7 +992,7 @@ fn get_glyph_id_count(seg_count: u16, start_code: &Vec<u16>, end_code: &Vec<u16>
 named!(pub parse_character_to_glyph_index_mapping_subtable_4<&[u8],CharacterGlyphIndexMappingSubtable>,
     do_parse!(
         verify!(be_u16, |format| format == 4) >>
-        length: be_u16 >>
+        _length: be_u16 >>
         language: be_u16 >>
         seg_count: map!(verify!(be_u16, |val| val > 0 && val % 2 == 0),
             |seg_count_x2| seg_count_x2 << 1) >>
@@ -1028,7 +1027,7 @@ named!(pub parse_character_to_glyph_index_mapping_subtable_4<&[u8],CharacterGlyp
 named!(parse_character_to_glyph_index_mapping_subtable_6<&[u8],CharacterGlyphIndexMappingSubtable>,
     do_parse!(
         verify!(be_u16, |format| format == 6) >>
-        length: be_u16 >>
+        _length: be_u16 >>
         language: be_u16 >>
         first_code: be_u16 >>
         entry_count: be_u16 >>
@@ -1049,7 +1048,7 @@ named!(parse_character_to_glyph_index_mapping_subtable_8<&[u8],CharacterGlyphInd
         verify!(be_u16, |format| format == 8) >>
         // Reserved; set to 0
         take!(2) >>
-        length: be_u32 >>
+        _length: be_u32 >>
         language: be_u32 >>
         is32: take!(8192) >>
         groups: length_count!(be_u32, parse_sequential_map_group) >>
@@ -1098,7 +1097,7 @@ named!(parse_character_to_glyph_index_mapping_subtable_10<&[u8],CharacterGlyphIn
         verify!(be_u16, |format| format == 10) >>
         // Reserved; set to 0
         take!(2) >>
-        length: be_u32 >>
+        _length: be_u32 >>
         language: be_u32 >>
         start_char_code: be_u32 >>
         num_chars: be_u32 >>
@@ -1118,7 +1117,7 @@ named!(parse_character_to_glyph_index_mapping_subtable_12<&[u8],CharacterGlyphIn
         verify!(be_u16, |format| format == 12) >>
         // Reserved; set to 0
         take!(2) >>
-        length: be_u32 >>
+        _length: be_u32 >>
         language: be_u32 >>
         groups: length_count!(be_u32, parse_sequential_map_group) >>
         (
@@ -1135,7 +1134,7 @@ named!(parse_character_to_glyph_index_mapping_subtable_13<&[u8],CharacterGlyphIn
         verify!(be_u16, |format| format == 13) >>
         // Reserved; set to 0
         take!(2) >>
-        length: be_u32 >>
+        _length: be_u32 >>
         language: be_u32 >>
         groups: length_count!(be_u32, parse_constant_map_group) >>
         (
@@ -1150,7 +1149,7 @@ named!(parse_character_to_glyph_index_mapping_subtable_13<&[u8],CharacterGlyphIn
 named!(parse_character_to_glyph_index_mapping_subtable_14<&[u8],CharacterGlyphIndexMappingSubtable>,
     do_parse!(
         verify!(be_u16, |format| format == 14) >>
-        length: be_u32 >>
+        _length: be_u32 >>
         var_selector: length_count!(be_u32, parse_variation_selector_record) >>
         (
             CharacterGlyphIndexMappingSubtable::Format_14(CharacterGlyphIndexMappingSubtable14 {

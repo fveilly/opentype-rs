@@ -1,5 +1,5 @@
 use error::Error;
-use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
+use nom::{be_i16, be_u16};
 use traits::{Parser, TableParser};
 
 /// Horizontal Header Table
@@ -166,7 +166,7 @@ named!(pub parse_horizontal_header_table<&[u8],HorizontalHeaderTable>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::{Err, Needed};
 
     #[test]
     fn case_head_invalid_empty_slice() {

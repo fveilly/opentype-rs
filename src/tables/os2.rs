@@ -1,5 +1,5 @@
 use error::Error;
-use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
+use nom::{be_i16, be_u16};
 use std::ops;
 use traits::{Parser, TableParser};
 use tables::Tag;
@@ -1898,7 +1898,7 @@ named!(parse_os2v5<&[u8],Os2V5>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::{Err, Needed};
 
     #[test]
     fn case_os2_invalid_empty_slice() {

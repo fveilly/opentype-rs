@@ -1,5 +1,5 @@
 use error::Error;
-use nom::{be_i16, be_u16, be_i32, be_u32, be_i64, IResult};
+use nom::{be_i16, be_u16, IResult};
 
 /// Horizontal Metrics Table
 ///
@@ -163,7 +163,7 @@ named!(parse_long_hor_metric_record<&[u8],LongHorMetricRecord>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::{Err, Needed};
 
     #[test]
     fn case_horizontal_metrics_table_left_side_bearings() {

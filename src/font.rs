@@ -1,8 +1,7 @@
-use error::Error;
 use offset_table::OffsetTable;
 use std::ops;
 use table::Table;
-use tables::{TableTag, Tag};
+use tables::TableTag;
 use table_record::parse_table_record;
 
 pub struct Font<'otf> {

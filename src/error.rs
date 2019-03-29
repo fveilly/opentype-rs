@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 use std::error;
 use nom::Err;
 
-#[derive(Debug, Copy, Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ErrorKindExt {
     // TODO: Unify into one generic error with data
     InvalidSfntVersion,
