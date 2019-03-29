@@ -1,5 +1,5 @@
 use error::Error;
-use nom::{be_i16, be_u16};
+use nom::{be_i16, be_u16, be_u32};
 use std::ops;
 use traits::{Parser, TableParser};
 use tables::Tag;
