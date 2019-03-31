@@ -1,4 +1,4 @@
-use nom::{be_u16, be_u32};
+use nom::be_u16;
 use std::fmt;
 
 /// The OpenType font starts with the Offset Table. If the font file contains only one font, the
@@ -11,7 +11,7 @@ pub struct OffsetTable {
     num_tables: u16,
     search_range: u16,
     entry_selector: u16,
-    range_shift: u16
+    range_shift: u16,
 }
 
 impl OffsetTable {
@@ -56,19 +56,19 @@ pub enum SfntVersion {
     /// arguments, various predefined default values, more efficient allotment of encoding values
     /// and shared subroutines within a FontSet (family of fonts) (source:
     /// [CFF](https://en.wikipedia.org/wiki/PostScript_fonts#Compact_Font_Format)).
-    CFF
+    CFF,
 }
 
 impl fmt::Display for SfntVersion {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            SfntVersion::TrueType =>  write!(f, "TrueType"),
+            SfntVersion::TrueType => write!(f, "TrueType"),
             SfntVersion::CFF => write!(f, "CFF"),
         }
     }
 }
 
-named!(pub parse_offset_table<&[u8],OffsetTable>,
+named!(pub parse_offset_table<&[u8], OffsetTable>,
     do_parse!(
         sfnt_version: parse_sfnt_version >>
         num_tables: be_u16 >>
@@ -87,25 +87,59 @@ named!(pub parse_offset_table<&[u8],OffsetTable>,
     )
 );
 
-named!(parse_sfnt_version<&[u8],SfntVersion>,
-    map_opt!(be_u32, |sfnt_version| {
-        match sfnt_version {
-            0x00010000 => Some(SfntVersion::TrueType),
-            0x4F54544F => Some(SfntVersion::CFF),
-            _ => None
-        }
-    })
+named!(parse_sfnt_version<&[u8], SfntVersion>,
+    alt!(
+        map!(alt!(tag!([0, 1, 0, 0]) | tag!("true") | tag!("typ1")), 
+            |_| SfntVersion::TrueType) |
+        map!(tag!("OTTO"), 
+            |_| SfntVersion::CFF)
+    )
 );
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::{Context, Err, ErrorKind, Needed};
+
+    mod util {
+        pub fn bytes_with_sfnt_version(sfnt_version: &[u8]) -> [u8; 12] {
+            let rest: &[u8] = &[0x00, 0x12, 0x01, 0x00, 0x00, 0x04, 0x00, 0x20];
+            let bytes = &[sfnt_version, rest].concat();
+            let mut array = [0; 12];
+            array.copy_from_slice(bytes);
+            array
+        }
+    }
 
     #[test]
-    fn case_offset_table_true_type() {
+    fn case_sfnt_version_tt_1() {
+        let bytes = util::bytes_with_sfnt_version(&[0x00, 0x01, 0x00, 0x00]);
+        assert_eq!(parse_sfnt_version(&bytes).unwrap().1, SfntVersion::TrueType);
+    }
+
+    #[test]
+    fn case_sfnt_version_tt_2() {
+        let bytes = util::bytes_with_sfnt_version("true".as_bytes());
+        assert_eq!(parse_sfnt_version(&bytes).unwrap().1, SfntVersion::TrueType);
+    }
+
+    #[test]
+    fn case_sfnt_version_tt_3() {
+        let bytes = util::bytes_with_sfnt_version("typ1".as_bytes());
+        assert_eq!(parse_sfnt_version(&bytes).unwrap().1, SfntVersion::TrueType);
+    }
+
+    #[test]
+    fn case_sfnt_version_cff() {
+        let bytes = util::bytes_with_sfnt_version("OTTO".as_bytes());
+        assert_eq!(parse_sfnt_version(&bytes).unwrap().1, SfntVersion::CFF);
+    }
+
+    #[test]
+    fn case_offset_table() {
         let bytes: &[u8] = &[
-            0x00, 0x01, 0x00, 0x00, 0x00, 0x12, 0x01, 0x00, 0x00, 0x04, 0x00, 0x20];
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x12, 0x01, 0x00, 0x00, 0x04, 0x00, 0x20,
+        ];
 
         let offset_table = parse_offset_table(bytes).unwrap().1;
 
@@ -114,21 +148,6 @@ mod tests {
         assert_eq!(offset_table.search_range(), 256);
         assert_eq!(offset_table.entry_selector(), 4);
         assert_eq!(offset_table.range_shift(), 32);
-    }
-
-    #[test]
-    fn case_offset_table_cff() {
-        let bytes: &[u8] = &[
-            0x4F, 0x54, 0x54, 0x4F, 0x00, 0x0E, 0x00, 0x80, 0x00, 0x03, 0x00, 0x60
-        ];
-
-        let offset_table = parse_offset_table(bytes).unwrap().1;
-
-        assert_eq!(offset_table.sfnt_version(), SfntVersion::CFF);
-        assert_eq!(offset_table.num_tables(), 14);
-        assert_eq!(offset_table.search_range(), 128);
-        assert_eq!(offset_table.entry_selector(), 3);
-        assert_eq!(offset_table.range_shift(), 96);
     }
 
     #[test]
@@ -141,12 +160,11 @@ mod tests {
 
     #[test]
     fn case_offset_table_invalid_sfnt_version() {
-        let bytes: &[u8]  = &[
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x80,
-            0x00, 0x03, 0x00, 0x70
+        let bytes: &[u8] = &[
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x80, 0x00, 0x03, 0x00, 0x70,
         ];
 
-        let expected = Result::Err(Err::Error(Context::Code(bytes, ErrorKind::MapOpt)));
-        assert_eq!(parse_offset_table(bytes),  expected);
+        let expected = Result::Err(Err::Error(Context::Code(bytes, ErrorKind::Alt)));
+        assert_eq!(parse_offset_table(bytes), expected);
     }
 }
