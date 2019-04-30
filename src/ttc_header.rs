@@ -1,5 +1,4 @@
 use nom::{be_u16, be_u32};
-use tables::Tag;
 use types::Offset32;
 
 /// The purpose of the TTC Header table is to locate the different Offset Tables within a TTC file.
@@ -20,6 +19,7 @@ impl TTCHeader {
     }
 
     /// Array of offsets to the OffsetTable for each font from the beginning of the file.
+    #[allow(dead_code)]
     pub fn offset_table(&self) -> &[u32] {
         &self.offset_table
     }
@@ -27,6 +27,7 @@ impl TTCHeader {
     /// There are two versions of the TTC Header: Version 1.0 has been used for TTC files without
     /// digital signatures. Version 2.0 can be used for TTC files with or without digital
     /// signatures.
+    #[allow(dead_code)]
     pub fn dsig(&self) -> Option<TTCDigitalSignature> {
         self.dsig
     }
@@ -41,11 +42,13 @@ pub struct TTCDigitalSignature {
 
 impl TTCDigitalSignature {
     /// The length (in bytes) of the DSIG table
+    #[allow(dead_code)]
     pub fn dsig_length(&self) -> u32 {
         self.dsig_length
     }
 
     /// The offset (in bytes) of the DSIG table from the beginning of the TTC
+    #[allow(dead_code)]
     pub fn dsig_offset(&self) -> u32 {
         self.dsig_offset
     }
@@ -106,7 +109,6 @@ named!(parse_ttc_header_v2<&[u8],TTCHeader>,
 mod tests {
     use super::*;
     use nom::{Err, ErrorKind, Context};
-    use tables::TableTag;
 
     #[test]
     fn case_ttc_header_v1_0() {

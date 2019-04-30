@@ -3,9 +3,6 @@
 //!
 //! https://docs.microsoft.com/en-gb/typography/opentype/spec/otff
 
-use std::{fmt, str};
-use tables::TableTag;
-
 /// Short offset to a table, same as uint16, NULL offset = 0x0000
 pub type Offset16 = u16;
 

@@ -14,8 +14,8 @@ mod offset_table;
 mod otff;
 mod table;
 mod table_record;
-pub mod traits;
 mod ttc_header;
+pub mod traits;
 pub mod tables;
 pub mod types;
 

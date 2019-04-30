@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use error::Error;
 use nom::be_u16;
 use traits::{Parser, TableParser};

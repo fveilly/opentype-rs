@@ -1,7 +1,6 @@
 use error::Error;
 use font::Font;
 use offset_table::{OffsetTable, parse_offset_table};
-use table_record::parse_table_records;
 use ttc_header::{TTCHeader, parse_ttc_header};
 
 /// An OpenType font file contains data, in table format, that comprises either a TrueType or a
@@ -14,7 +13,6 @@ use ttc_header::{TTCHeader, parse_ttc_header};
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum OpenTypeFontKind {
     Font(OffsetTable),
-
     FontCollection(TTCHeader)
 }
 
@@ -81,7 +79,7 @@ impl<'otf> Iterator for OpenTypeFontFileIterator<'otf> {
                     Some(Font::new(self.otff.buf, self.otff.remainder, *offset_table))
                 }
             },
-            OpenTypeFontKind::FontCollection(ttc_header) => {
+            OpenTypeFontKind::FontCollection(_ttc_header) => {
                 // TODO
                 None
             }
@@ -111,7 +109,6 @@ named!(pub parse_otff<&[u8],OpenTypeFontKind>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
     use offset_table::SfntVersion;
 
     #[test]

@@ -1,6 +1,5 @@
 use error::Error;
-use tables::{TableTag, Tag};
-use std::{fmt, cmp, ops};
+use tables::TableTag;
 use table_record::{compute_checksum, compute_checksum_for_head};
 
 pub struct Table<'otf> {
@@ -38,7 +37,7 @@ impl<'otf> Table<'otf> {
             TableTag::Head => {
                 let checksum = compute_checksum_for_head(table_padded_buf)?;
 
-                if (checksum != self.check_sum) {
+                if checksum != self.check_sum {
                     return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.check_sum, checksum)))
                 }
 
@@ -47,7 +46,7 @@ impl<'otf> Table<'otf> {
             _ => {
                 let checksum = compute_checksum(table_padded_buf)?;
 
-                if (checksum != self.check_sum) {
+                if checksum != self.check_sum {
                     return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.check_sum, checksum)))
                 }
 

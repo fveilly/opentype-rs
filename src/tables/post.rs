@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use error::Error;
 use nom::{be_u8, be_i16, be_u16, be_i32, be_u32, IResult};
 use std::{ops, str};
@@ -168,7 +170,7 @@ impl<'otf> Parser<'otf> for PostScriptTable {
 impl<'otf> TableParser<'otf> for PostScriptTable {}
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-#[allow(non_camel_case_types)]
+#[allow(non_camel_case_types, deprecated)]
 pub enum PostScriptVersion {
     /// This version is used in order to supply PostScript glyph names when the font file contains
     /// exactly the 258 glyphs in the standard Macintosh TrueType font file (see 'post' Format 1 in
@@ -417,7 +419,7 @@ pub fn parse_pascal_strings_to_owned(input: &[u8], length: usize) -> IResult<&[u
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::{Err, Needed};
 
     #[test]
     fn case_post_script_table_pascal_strings() {

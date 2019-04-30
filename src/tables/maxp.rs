@@ -1,7 +1,6 @@
 use error::Error;
-use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
+use nom::{be_u16, be_i32};
 use traits::{Parser, TableParser};
-use types::{Fixed, LongDateTime, Rect};
 
 /// Maximum Profile Table
 ///
@@ -235,7 +234,7 @@ named!(parse_maximum_profile_table_v1_0<&[u8],MaximumProfileTable>,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::{Err, Needed};
 
     #[test]
     fn case_maximum_profile_table_invalid_empty_slice() {

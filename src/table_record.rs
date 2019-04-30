@@ -17,6 +17,7 @@ pub struct TableRecord {
 }
 
 impl TableRecord {
+    #[allow(dead_code)]
     pub(crate) fn new(table_tag: Tag, check_sum: u32, offset: Offset32, length: u32) -> TableRecord {
         TableRecord {
             table_tag,
@@ -94,7 +95,6 @@ pub fn compute_checksum_for_head(i: &[u8]) -> Result<u32, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context};
     use tables::TableTag;
 
     static ROBOTO_REGULAR: &[u8] = include_bytes!("../fonts/Roboto/Roboto-Regular.ttf");
