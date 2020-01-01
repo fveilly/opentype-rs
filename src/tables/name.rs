@@ -1,7 +1,8 @@
 #![allow(deprecated)]
-use error::Error;
-use nom::be_u16;
-use traits::{Parser, TableParser};
+use nom::Err as NomErr;
+use nom::IResult;
+use nom::multi::count;
+use nom::number::complete::be_u16;
 
 /// Naming Table
 ///
@@ -45,7 +46,7 @@ use traits::{Parser, TableParser};
 pub struct NamingTable {
     string_offset: u16,
     name_records: Vec<NameRecord>,
-    lang_tag_records: Option<Vec<LangTagRecord>>
+    lang_tag_records: Vec<LangTagRecord>
 }
 
 impl NamingTable {
@@ -56,18 +57,16 @@ impl NamingTable {
 
     /// The name records.
     pub fn name_records(&self) -> &Vec<NameRecord> {
-        &self.name_records
+        self.name_records.as_ref()
     }
 
     /// The language-tag records.
-    pub fn lang_tag_records(&self) -> Option<&Vec<LangTagRecord>> {
+    pub fn lang_tag_records(&self) -> &Vec<LangTagRecord> {
         self.lang_tag_records.as_ref()
     }
 }
 
-impl<'otf> Parser<'otf> for NamingTable {
-    type Item = NamingTable;
-
+impl_parse!(
     /// Parse Naming Table.
     ///
     /// # Example
@@ -77,7 +76,7 @@ impl<'otf> Parser<'otf> for NamingTable {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::tables::name::{NamingTable, Platform, MacintoshEncoding, MacintoshLanguage, NameId};
-    /// use otf::traits::Parser;
+    /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x00, 0x00, 0x1A, 0x01, 0x3E, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -104,11 +103,11 @@ impl<'otf> Parser<'otf> for NamingTable {
     ///     0x00, 0x03, 0x00, 0x01, 0x04, 0x09, 0x00, 0x0D, 0x00, 0x5C, 0x02, 0x38, 0x00, 0x03,
     ///     0x00, 0x01, 0x04, 0x09, 0x00, 0x0E, 0x00, 0x54, 0x02, 0x94];
     ///
-    /// let naming_table = NamingTable::parse(bytes).unwrap();
+    /// let naming_table = NamingTable::parse(bytes).unwrap().1;
     ///
     /// assert_eq!(naming_table.string_offset(), 318);
     /// assert_eq!(naming_table.name_records().len(), 26);
-    /// assert!(naming_table.lang_tag_records().is_none());
+    /// assert!(naming_table.lang_tag_records().is_empty());
     ///
     /// let first_name_record = naming_table.name_records().get(0).unwrap();
     ///
@@ -129,12 +128,8 @@ impl<'otf> Parser<'otf> for NamingTable {
     /// ```
     /// // TODO
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        Ok(parse_naming_table(buf)?.1)
-    }
-}
-
-impl<'otf> TableParser<'otf> for NamingTable {}
+    NamingTable, parse_naming_table
+);
 
 /// The platform, encoding and language IDs of a name record allow for platform-specific
 /// implementations. Different platforms can support different encodings, and different languages.
@@ -202,7 +197,7 @@ impl Platform {
             4 => {
                 Some(Platform::Custom(encoding_id, language_opt))
             },
-            240...255 => {
+            240..=255 => {
                 Some(Platform::UserDefined(encoding_id, language_opt))
             },
             _ => None
@@ -1326,7 +1321,7 @@ impl NameId {
             23 => Some(NameId::LightBackgroundPalette),
             24 => Some(NameId::DarkBackgroundPalette),
             25 => Some(NameId::VariationsPostScriptNamePrefix),
-            256...32767 => Some(NameId::FontSpecificName(v)),
+            256..=32767 => Some(NameId::FontSpecificName(v)),
             _ => None
         }
     }
@@ -1402,87 +1397,82 @@ impl LangTagRecord {
     }
 }
 
+use nom::Err;
+use nom::error::ErrorKind;
 
-named!(pub parse_naming_table<&[u8],NamingTable>,
-    alt!(parse_naming_table_format0 | parse_naming_table_format1)
-);
+fn parse_naming_table(input: &[u8]) -> IResult<&[u8], NamingTable>
+{
+    let (input, format) = be_u16(input)?;
+    match format {
+        0 => {
+            let (input, name_record_count) = be_u16(input)?;
+            let (input, string_offset) = be_u16(input)?;
+            let (input, name_records) = count(parse_name_record, usize::from(name_record_count))(input)?;
 
-named!(parse_naming_table_format0<&[u8],NamingTable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 0) >>
-        count: be_u16 >>
-        string_offset: be_u16 >>
-        name_records: count!(parse_name_record, count as usize) >>
-        (
-            NamingTable {
+            Ok((input, NamingTable {
                 string_offset,
                 name_records,
-                lang_tag_records: None
-            }
-        )
-    )
-);
+                lang_tag_records: Vec::new()
+            }))
+        },
+        1 => {
+            let (input, name_record_count) = be_u16(input)?;
+            let (input, string_offset) = be_u16(input)?;
+            let (input, name_records) = count(parse_name_record, usize::from(name_record_count))(input)?;
+            let (input, lang_tag_count) = be_u16(input)?;
+            let (input, lang_tag_records) = count(parse_lang_tag_record, usize::from(lang_tag_count))(input)?;
 
-named!(parse_naming_table_format1<&[u8],NamingTable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 1) >>
-        count: be_u16 >>
-        string_offset: be_u16 >>
-        name_records: count!(parse_name_record, count as usize) >>
-        lang_tag_records: length_count!(be_u16, parse_lang_tag_record) >>
-        (
-            NamingTable {
+            Ok((input, NamingTable {
                 string_offset,
                 name_records,
-                lang_tag_records: Some(lang_tag_records)
-            }
-        )
-    )
-);
+                lang_tag_records
+            }))
+        },
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
+    }
+}
 
-named!(parse_name_record<&[u8],NameRecord>,
-    do_parse!(
-        platform_id: be_u16 >>
-        encoding_id: be_u16 >>
-        language_id: be_u16 >>
-        platform: expr_opt!(Platform::new(platform_id, encoding_id, Some(language_id))) >>
-        name_id: map_opt!(be_u16, |v| NameId::from_u16(v)) >>
-        length: be_u16 >>
-        offset: be_u16 >>
-        (
-            NameRecord {
-                platform,
-                name_id,
-                length,
-                offset
-            }
-        )
-    )
-);
+fn parse_name_record(input: &[u8]) -> IResult<&[u8], NameRecord>
+{
+    let (input, platform_id) = be_u16(input)?;
+    let (input, encoding_id) = be_u16(input)?;
+    let (input, language_id) = be_u16(input)?;
+    let platform = Platform::new(platform_id, encoding_id, Some(language_id)).ok_or(Err::Error(error_position!(input, ErrorKind::Verify)))?;
+    let (input, name_id) = be_u16(input)?;
+    let name_id = NameId::from_u16(name_id).ok_or(Err::Error(error_position!(input, ErrorKind::Verify)))?;
+    let (input, length) = be_u16(input)?;
+    let (input, offset) = be_u16(input)?;
 
-named!(parse_lang_tag_record<&[u8],LangTagRecord>,
-    do_parse!(
-        length: be_u16 >>
-        offset: be_u16 >>
-        (
-            LangTagRecord {
-                length,
-                offset
-            }
-        )
-    )
-);
+    Ok((input, NameRecord {
+        platform,
+        name_id,
+        length,
+        offset
+    }))
+}
+
+fn parse_lang_tag_record(input: &[u8]) -> IResult<&[u8], LangTagRecord>
+{
+    let (input, length) = be_u16(input)?;
+    let (input, offset) = be_u16(input)?;
+
+    Ok((input, LangTagRecord {
+        length,
+        offset
+    }))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_naming_table_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_naming_table(bytes), expected);
     }
 
@@ -1490,7 +1480,7 @@ mod tests {
     fn case_naming_table_invalid_format() {
         let bytes: &[u8] = &[0x01, 0x01];
 
-        let expected =  Result::Err(Err::Error(Context::Code(bytes, ErrorKind::Alt)));
+        let expected =  Err(Err::Error(error_position!(&bytes[2..], ErrorKind::Alt)));
         assert_eq!(parse_naming_table(bytes), expected);
     }
 
@@ -1501,7 +1491,7 @@ mod tests {
             0x01, 0x00, 0x06, 0x00, 0x2F, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
             0x07, 0x00, 0x35];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        let expected = Err(Err::Error(error_position!(&b""[..], ErrorKind::Eof)));
         assert_eq!(parse_naming_table(bytes), expected);
     }
 
@@ -1525,7 +1515,7 @@ mod tests {
     fn case_name_record_invalid_platform_id() {
         let bytes: &[u8] = &[0x00, 0x05, 0x00, 0x00, 0x00, 0x00];
 
-        let expected =  Result::Err(Err::Error(Context::Code(&b""[..], ErrorKind::ExprOpt)));
+        let expected =  Err(Err::Error(error_position!(&b""[..], ErrorKind::Verify)));
         assert_eq!(parse_name_record(bytes), expected);
     }
 
@@ -1533,7 +1523,7 @@ mod tests {
     fn case_name_record_invalid_macintosh_encoding_id() {
         let bytes: &[u8] = &[0x00, 0x01, 0x00, 0xFF, 0x00, 0x00];
 
-        let expected =  Result::Err(Err::Error(Context::Code(&b""[..], ErrorKind::ExprOpt)));
+        let expected =  Err(Err::Error(error_position!(&b""[..], ErrorKind::Verify)));
         assert_eq!(parse_name_record(bytes), expected);
     }
 
@@ -1557,7 +1547,7 @@ mod tests {
     fn case_name_record_invalid_name_id() {
         let bytes: &[u8] = &[0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF];
 
-        let expected =  Result::Err(Err::Error(Context::Code(&bytes[6..], ErrorKind::MapOpt)));
+        let expected =  Err(Err::Error(error_position!(&b""[..], ErrorKind::Verify)));
         assert_eq!(parse_name_record(bytes), expected);
     }
 }

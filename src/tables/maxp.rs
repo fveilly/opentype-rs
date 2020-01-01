@@ -1,6 +1,7 @@
-use error::Error;
-use nom::{be_u16, be_i32};
-use traits::{Parser, TableParser};
+use nom::IResult;
+use nom::Err as NomErr;
+use nom::error::ErrorKind;
+use nom::number::complete::{be_u16, be_i32};
 
 /// Maximum Profile Table
 ///
@@ -26,9 +27,7 @@ impl<'otf> MaximumProfileTable {
     }
 }
 
-impl<'otf> Parser<'otf> for MaximumProfileTable {
-    type Item = MaximumProfileTable;
-
+impl_parse!(
     /// Parse Maximum Profile Table.
     ///
     /// # Example
@@ -38,12 +37,12 @@ impl<'otf> Parser<'otf> for MaximumProfileTable {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::tables::maxp::MaximumProfileTable;
-    /// use otf::traits::Parser;
+    /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x00, 0x50, 0x00, 0x05, 0x0E];
     ///
-    /// let maximum_profile_table = MaximumProfileTable::parse(bytes).unwrap();
+    /// let maximum_profile_table = MaximumProfileTable::parse(bytes).unwrap().1;
     ///
     /// assert_eq!(maximum_profile_table.num_glyphs(), 1294);
     /// assert_eq!(maximum_profile_table.extension(), None);
@@ -54,14 +53,14 @@ impl<'otf> Parser<'otf> for MaximumProfileTable {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::tables::maxp::MaximumProfileTable;
-    /// use otf::traits::Parser;
+    /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x01, 0x00, 0x00, 0x05, 0x0E, 0x00, 0x8F, 0x00, 0x16, 0x00, 0x54, 0x00, 0x05,
     ///     0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x02, 0x00, 0x02, 0x24,
     ///     0x00, 0x06, 0x00, 0x01];
     ///
-    /// let maximum_profile_table = MaximumProfileTable::parse(bytes).unwrap();
+    /// let maximum_profile_table = MaximumProfileTable::parse(bytes).unwrap().1;
     /// let maximum_profile_table_extension = maximum_profile_table.extension().unwrap();
     ///
     /// assert_eq!(maximum_profile_table.num_glyphs(), 1294);
@@ -79,12 +78,8 @@ impl<'otf> Parser<'otf> for MaximumProfileTable {
     /// assert_eq!(maximum_profile_table_extension.max_component_elements(), 6);
     /// assert_eq!(maximum_profile_table_extension.max_component_depth(), 1);
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        Ok(parse_maximum_profile_table(buf)?.1)
-    }
-}
-
-impl<'otf> TableParser<'otf> for MaximumProfileTable {}
+    MaximumProfileTable, parse_maximum_profile_table
+);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct MaximumProfileTableExtension {
@@ -172,75 +167,69 @@ impl MaximumProfileTableExtension {
     }
 }
 
-named!(pub parse_maximum_profile_table<&[u8],MaximumProfileTable>,
-    alt!(parse_maximum_profile_table_v0_5 | parse_maximum_profile_table_v1_0)
-);
+pub fn parse_maximum_profile_table(input: &[u8]) -> IResult<&[u8], MaximumProfileTable>
+{
+    let (input, version) = be_i32(input)?;
 
-named!(parse_maximum_profile_table_v0_5<&[u8],MaximumProfileTable>,
-    do_parse!(
-        verify!(be_i32, |version| version == 0x00005000) >>
-        num_glyphs: be_u16 >>
-        (
-            MaximumProfileTable {
+    match version {
+        0x00005000 => {
+           let (input, num_glyphs) = be_u16(input)?;
+
+            Ok((input, MaximumProfileTable {
                 num_glyphs,
                 extension: None
-            }
-        )
-    )
-);
+            }))
+        },
+        0x00010000 => {
+            let (input, num_glyphs) = be_u16(input)?;
+            let (input, max_points) = be_u16(input)?;
+            let (input, max_contours) = be_u16(input)?;
+            let (input, max_composite_points) = be_u16(input)?;
+            let (input, max_composite_contours) = be_u16(input)?;
+            let (input, max_zones) = be_u16(input)?;
+            let (input, max_twilight_points) = be_u16(input)?;
+            let (input, max_storage) = be_u16(input)?;
+            let (input, max_function_defs) = be_u16(input)?;
+            let (input, max_instruction_defs) = be_u16(input)?;
+            let (input, max_stack_elements) = be_u16(input)?;
+            let (input, max_size_of_instructions) = be_u16(input)?;
+            let (input, max_component_elements) = be_u16(input)?;
+            let (input, max_component_depth) = be_u16(input)?;
 
-named!(parse_maximum_profile_table_v1_0<&[u8],MaximumProfileTable>,
-    do_parse!(
-        verify!(be_i32, |version| version == 0x00010000) >>
-        num_glyphs: be_u16 >>
-        max_points: be_u16 >>
-        max_contours: be_u16 >>
-        max_composite_points: be_u16 >>
-        max_composite_contours: be_u16 >>
-        max_zones: be_u16 >>
-        max_twilight_points: be_u16 >>
-        max_storage: be_u16 >>
-        max_function_defs: be_u16 >>
-        max_instruction_defs: be_u16 >>
-        max_stack_elements: be_u16 >>
-        max_size_of_instructions: be_u16 >>
-        max_component_elements: be_u16 >>
-        max_component_depth: be_u16 >>
-        ({
-
-            MaximumProfileTable {
+            Ok((input, MaximumProfileTable {
                 num_glyphs,
                 extension: Some(MaximumProfileTableExtension {
-                    max_points,
-                    max_contours,
-                    max_composite_points,
-                    max_composite_contours,
-                    max_zones,
-                    max_twilight_points,
-                    max_storage,
-                    max_function_defs,
-                    max_instruction_defs,
-                    max_stack_elements,
-                    max_size_of_instructions,
-                    max_component_elements,
-                    max_component_depth
+                max_points,
+                max_contours,
+                max_composite_points,
+                max_composite_contours,
+                max_zones,
+                max_twilight_points,
+                max_storage,
+                max_function_defs,
+                max_instruction_defs,
+                max_stack_elements,
+                max_size_of_instructions,
+                max_component_elements,
+                max_component_depth
                 })
-
-            }
-        })
-    )
-);
+            }))
+        },
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Verify)))
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_maximum_profile_table_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(4)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_maximum_profile_table(bytes), expected);
     }
 }

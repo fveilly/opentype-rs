@@ -1,7 +1,10 @@
-use error::Error;
-use nom::{be_i16, be_u16, be_u32};
+use nom::Err as NomErr;
+use nom::IResult;
+use nom::number::complete::{be_i16, be_u16, be_u32};
+use nom::bytes::complete::take;
+use nom::error::ErrorKind;
+use nom::combinator::map_opt;
 use std::ops;
-use traits::{Parser, TableParser};
 use tables::Tag;
 
 /// OS/2 and Windows Metrics Table
@@ -330,9 +333,7 @@ impl Os2 {
     }
 }
 
-impl<'otf> Parser<'otf> for Os2 {
-    type Item = Os2;
-
+impl_parse!(
     /// Parse OS/2 Table.
     ///
     /// # Example
@@ -353,7 +354,7 @@ impl<'otf> Parser<'otf> for Os2 {
     ///
     /// use otf::tables::os2::{Os2, Os2Version, FontSelectionFlags, CodePageRange, UnicodeRange, Panose};
     /// use otf::tables::Tag;
-    /// use otf::traits::Parser;
+    /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x03, 0x04, 0x86, 0x01, 0x90, 0x00, 0x05, 0x00, 0x00, 0x05, 0x9A, 0x05, 0x33,
@@ -364,7 +365,7 @@ impl<'otf> Parser<'otf> for Os2 {
     ///     0xFE, 0x00, 0x00, 0x66, 0x07, 0x9A, 0x02, 0x00, 0x20, 0x00, 0x01, 0x9F, 0x00, 0x00,
     ///     0x00, 0x00, 0x04, 0x3A, 0x05, 0xB0, 0x00, 0x20, 0x00, 0x20, 0x00, 0x03];
     ///
-    /// let os2_table = Os2::parse(bytes).unwrap();
+    /// let os2_table = Os2::parse(bytes).unwrap().1;
     ///
     /// match os2_table.version() {
     ///     Os2Version::Version3(os2) => {
@@ -409,12 +410,8 @@ impl<'otf> Parser<'otf> for Os2 {
     /// ```
     /// // TODO
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        Ok(parse_os2(buf)?.1)
-    }
-}
-
-impl<'otf> TableParser<'otf> for Os2 {}
+    Os2, parse_os2
+);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Os2Version {
@@ -1770,141 +1767,156 @@ impl ops::Deref for Os2V5 {
     }
 }
 
-named!(pub parse_os2<&[u8],Os2>,
-    switch!(be_u16,
-     	0x0000 => map!(parse_os2v0, |os2v0| Os2(Os2Version::Version0(os2v0))) |
-     	0x0001 => map!(parse_os2v1, |os2v1| Os2(Os2Version::Version1(os2v1))) |
-     	0x0002 => map!(parse_os2v4, |os2v4| Os2(Os2Version::Version2(os2v4))) |
-     	0x0003 => map!(parse_os2v4, |os2v4| Os2(Os2Version::Version3(os2v4))) |
-     	0x0004 => map!(parse_os2v4, |os2v4| Os2(Os2Version::Version4(os2v4))) |
-     	0x0005 => map!(parse_os2v5, |os2v5| Os2(Os2Version::Version5(os2v5)))
-    )
-);
+pub fn parse_os2(input: &[u8]) -> IResult<&[u8], Os2>
+{
+    let (input, version) = be_u16(input)?;
 
-named!(parse_os2v0<&[u8],Os2V0>,
-    do_parse!(
-        x_avg_char_width: be_i16 >>
-        us_weight_class: be_u16 >>
-        us_width_class: be_u16 >>
-        fs_type: be_u16 >>
-        y_subscript_xsize: be_i16 >>
-        y_subscript_ysize: be_i16 >>
-        y_subscript_xoffset: be_i16 >>
-        y_subscript_yoffset: be_i16 >>
-        y_superscript_xsize: be_i16 >>
-        y_superscript_ysize: be_i16 >>
-        y_superscript_xoffset: be_i16 >>
-        y_superscript_yoffset: be_i16 >>
-        y_strikeout_size: be_i16 >>
-        y_strikeout_position: be_i16 >>
-        s_family_class: be_i16 >>
-        panose: take!(10) >>
-        ul_unicode_range1: be_u32 >>
-        ul_unicode_range2: be_u32 >>
-        ul_unicode_range3: be_u32 >>
-        ul_unicode_range4: be_u32 >>
-        ach_vend_id: take!(4) >>
-        fs_selection: map_opt!(be_u16, |flags| FontSelectionFlags::from_bits(flags)) >>
-        us_first_char_index: be_u16 >>
-        us_last_char_index: be_u16 >>
-        s_typo_ascender: be_i16 >>
-        s_typo_descender: be_i16 >>
-        s_typo_line_gap: be_i16 >>
-        us_win_ascent: be_u16 >>
-        us_win_descent: be_u16 >>
-        (
-            Os2V0 {
-                x_avg_char_width,
-                us_weight_class,
-                us_width_class,
-                fs_type,
-                y_subscript_xsize,
-                y_subscript_ysize,
-                y_subscript_xoffset,
-                y_subscript_yoffset,
-                y_superscript_xsize,
-                y_superscript_ysize,
-                y_superscript_xoffset,
-                y_superscript_yoffset,
-                y_strikeout_size,
-                y_strikeout_position,
-                s_family_class,
-                panose: Panose::new(panose),
-                ul_unicode_range: UnicodeRange::new(ul_unicode_range1, ul_unicode_range2, ul_unicode_range3, ul_unicode_range4),
-                ach_vend_id: Tag::new(ach_vend_id),
-                fs_selection,
-                us_first_char_index,
-                us_last_char_index,
-                s_typo_ascender,
-                s_typo_descender,
-                s_typo_line_gap,
-                us_win_ascent,
-                us_win_descent
-            }
-        )
-    )
-);
+    match version {
+        0x0000 => {
+            let (input, os2v0) = parse_os2v0(input)?;
+            Ok((input, Os2(Os2Version::Version0(os2v0))))
+        },
+        0x0001 => {
+            let (input, os2v1) = parse_os2v1(input)?;
+            Ok((input, Os2(Os2Version::Version1(os2v1))))
+        },
+        0x0002 => {
+            let (input, os2v4) = parse_os2v4(input)?;
+            Ok((input, Os2(Os2Version::Version2(os2v4))))
+        },
+        0x0003 => {
+            let (input, os2v4) = parse_os2v4(input)?;
+            Ok((input, Os2(Os2Version::Version3(os2v4))))
+        },
+        0x0004 => {
+            let (input, os2v4) = parse_os2v4(input)?;
+            Ok((input, Os2(Os2Version::Version4(os2v4))))
+        },
+        0x0005 => {
+            let (input, os2v5) = parse_os2v5(input)?;
+            Ok((input, Os2(Os2Version::Version5(os2v5))))
+        },
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
+    }
+}
 
-named!(parse_os2v1<&[u8],Os2V1>,
-    do_parse!(
-        os2_v0: parse_os2v0 >>
-        ul_code_page_range1: be_u32 >>
-        ul_code_page_range2: be_u32 >>
-        (
-            Os2V1 {
-                os2_v0,
-                ul_code_page_range: CodePageRange::new(ul_code_page_range1, ul_code_page_range2),
-            }
-        )
-    )
-);
+fn parse_os2v0(input: &[u8]) -> IResult<&[u8], Os2V0>
+{
+    let (input, x_avg_char_width) = be_i16(input)?;
+    let (input, us_weight_class) = be_u16(input)?;
+    let (input, us_width_class) = be_u16(input)?;
+    let (input, fs_type) = be_u16(input)?;
+    let (input, y_subscript_xsize) = be_i16(input)?;
+    let (input, y_subscript_ysize) = be_i16(input)?;
+    let (input, y_subscript_xoffset) = be_i16(input)?;
+    let (input, y_subscript_yoffset) = be_i16(input)?;
+    let (input, y_superscript_xsize) = be_i16(input)?;
+    let (input, y_superscript_ysize) = be_i16(input)?;
+    let (input, y_superscript_xoffset) = be_i16(input)?;
+    let (input, y_superscript_yoffset) = be_i16(input)?;
+    let (input, y_strikeout_size) = be_i16(input)?;
+    let (input, y_strikeout_position) = be_i16(input)?;
+    let (input, s_family_class) = be_i16(input)?;
+    let (input, panose) = take(10usize)(input)?;
+    let (input, ul_unicode_range1) = be_u32(input)?;
+    let (input, ul_unicode_range2) = be_u32(input)?;
+    let (input, ul_unicode_range3) = be_u32(input)?;
+    let (input, ul_unicode_range4) = be_u32(input)?;
+    let (input, ach_vend_id) = take(4usize)(input)?;
+    let (input, fs_selection) = map_opt(be_u16, |flags| FontSelectionFlags::from_bits(flags))(input)?;
+    let (input, us_first_char_index) = be_u16(input)?;
+    let (input, us_last_char_index) = be_u16(input)?;
+    let (input, s_typo_ascender) = be_i16(input)?;
+    let (input, s_typo_descender) = be_i16(input)?;
+    let (input, s_typo_line_gap) = be_i16(input)?;
+    let (input, us_win_ascent) = be_u16(input)?;
+    let (input, us_win_descent) = be_u16(input)?;
 
-named!(parse_os2v4<&[u8],Os2V4>,
-    do_parse!(
-        os2_v1: parse_os2v1 >>
-        sx_height: be_i16 >>
-        s_cap_height: be_i16 >>
-        us_default_char: be_u16 >>
-        us_break_char: be_u16 >>
-        us_max_context: be_u16 >>
-        (
-            Os2V4 {
-                os2_v1,
-                sx_height,
-                s_cap_height,
-                us_default_char,
-                us_break_char,
-                us_max_context
-            }
-        )
-    )
-);
+    Ok((input, Os2V0 {
+        x_avg_char_width,
+        us_weight_class,
+        us_width_class,
+        fs_type,
+        y_subscript_xsize,
+        y_subscript_ysize,
+        y_subscript_xoffset,
+        y_subscript_yoffset,
+        y_superscript_xsize,
+        y_superscript_ysize,
+        y_superscript_xoffset,
+        y_superscript_yoffset,
+        y_strikeout_size,
+        y_strikeout_position,
+        s_family_class,
+        panose: Panose::new(panose),
+        ul_unicode_range: UnicodeRange::new(ul_unicode_range1, ul_unicode_range2, ul_unicode_range3, ul_unicode_range4),
+        ach_vend_id: Tag::new(ach_vend_id),
+        fs_selection,
+        us_first_char_index,
+        us_last_char_index,
+        s_typo_ascender,
+        s_typo_descender,
+        s_typo_line_gap,
+        us_win_ascent,
+        us_win_descent
+    }))
+}
 
-named!(parse_os2v5<&[u8],Os2V5>,
-    do_parse!(
-        os2_v4: parse_os2v4 >>
-        us_lower_optical_point_size: be_u16 >>
-        us_upper_optical_point_size: be_u16 >>
-        (
-            Os2V5 {
-                os2_v4,
-                us_lower_optical_point_size,
-                us_upper_optical_point_size
-            }
-        )
-    )
-);
+fn parse_os2v1(input: &[u8]) -> IResult<&[u8], Os2V1>
+{
+    let (input, os2_v0) = parse_os2v0(input)?;
+    let (input, ul_code_page_range1) = be_u32(input)?;
+    let (input, ul_code_page_range2) = be_u32(input)?;
+
+    Ok((input, Os2V1 {
+        os2_v0,
+        ul_code_page_range: CodePageRange::new(ul_code_page_range1, ul_code_page_range2)
+    }))
+}
+
+fn parse_os2v4(input: &[u8]) -> IResult<&[u8], Os2V4>
+{
+    let (input, os2_v1) = parse_os2v1(input)?;
+    let (input, sx_height) = be_i16(input)?;
+    let (input, s_cap_height) = be_i16(input)?;
+    let (input, us_default_char) = be_u16(input)?;
+    let (input, us_break_char) = be_u16(input)?;
+    let (input, us_max_context) = be_u16(input)?;
+
+    Ok((input, Os2V4 {
+        os2_v1,
+        sx_height,
+        s_cap_height,
+        us_default_char,
+        us_break_char,
+        us_max_context
+    }))
+}
+
+fn parse_os2v5(input: &[u8]) -> IResult<&[u8], Os2V5>
+{
+    let (input, os2_v4) = parse_os2v4(input)?;
+    let (input, us_lower_optical_point_size) = be_u16(input)?;
+    let (input, us_upper_optical_point_size) = be_u16(input)?;
+
+    Ok((input, Os2V5 {
+        os2_v4,
+        us_lower_optical_point_size,
+        us_upper_optical_point_size
+    }))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_os2_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_os2(bytes), expected);
     }
 }

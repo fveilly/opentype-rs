@@ -77,7 +77,7 @@ impl<'otf> Iterator for FontIterator<'otf> {
                     self.pos = self.pos + 1;
 
                     if let Some(tag) = TableTag::parse(table_record.table_tag()) {
-                        return Some(Table::new(self.buf, tag, table_record.check_sum(),
+                        return Some(Table::new(self.buf, tag, table_record.checksum(),
                                                 table_record.offset() as usize, table_record.length() as usize));
                     }
                 },

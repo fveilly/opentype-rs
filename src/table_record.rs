@@ -1,7 +1,7 @@
-use error::Error;
-use nom::be_u32;
-use nom_ext::be_u32_c;
-use nom::types::CompleteByteSlice;
+use nom::IResult;
+use nom::number::complete::be_u32;
+use nom::bytes::complete::take;
+use nom::multi::{fold_many0, fold_many_m_n, count};
 use tables::Tag;
 use types::Offset32;
 
@@ -11,17 +11,17 @@ use types::Offset32;
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct TableRecord {
     table_tag: Tag,
-    check_sum: u32,
+    checksum: u32,
     offset: Offset32,
     length: u32
 }
 
 impl TableRecord {
     #[allow(dead_code)]
-    pub(crate) fn new(table_tag: Tag, check_sum: u32, offset: Offset32, length: u32) -> TableRecord {
+    pub(crate) fn new(table_tag: Tag, checksum: u32, offset: Offset32, length: u32) -> TableRecord {
         TableRecord {
             table_tag,
-            check_sum,
+            checksum,
             offset,
             length
         }
@@ -33,8 +33,8 @@ impl TableRecord {
     }
 
     /// CheckSum for this table
-    pub fn check_sum(&self) -> u32 {
-        self.check_sum
+    pub fn checksum(&self) -> u32 {
+        self.checksum
     }
 
     /// Offset from beginning of TrueType font file
@@ -48,48 +48,36 @@ impl TableRecord {
     }
 }
 
-named_args!(pub parse_table_records(num_tables: u16)<&[u8],Vec<TableRecord>>,
-    count!(parse_table_record, num_tables as usize)
-);
-
-named!(pub parse_table_record<&[u8],TableRecord>,
-    do_parse!(
-        table_tag: take!(4) >>
-        check_sum: be_u32 >>
-        offset: be_u32 >>
-        length: be_u32 >>
-        (
-            TableRecord {
-                table_tag: Tag::new(table_tag),
-                check_sum,
-                offset,
-                length
-            }
-        )
-    )
-);
-
-pub fn compute_checksum(i: &[u8]) -> Result<u32, Error> {
-    Ok(fold_many0!(CompleteByteSlice(i), be_u32_c, 0, |acc: u32, v|  {
-        acc.wrapping_add(v)
-    })?.1)
+pub fn parse_table_records(input: &[u8], num_tables: u16) -> IResult<&[u8], Vec<TableRecord>>
+{
+    count(parse_table_record, usize::from(num_tables))(input)
 }
 
-pub fn compute_checksum_for_head(i: &[u8]) -> Result<u32, Error> {
-    Ok(do_parse!(
-        CompleteByteSlice(i),
-        s0: fold_many_m_n!(0, 2, be_u32_c, 0, |acc: u32, v| {
-            acc.wrapping_add(v)
-        }) >>
-        // Ignore the checkSumAdjustment field (32 bits)
-        take!(4) >>
-        s1: fold_many0!(be_u32_c, 0, |acc: u32, v|  {
-            acc.wrapping_add(v)
-        }) >>
-        (
-            s0.wrapping_add(s1)
-        )
-    )?.1)
+pub fn parse_table_record(input: &[u8]) -> IResult<&[u8], TableRecord>
+{
+    let (input, table_tag) = take(4usize)(input)?;
+    let (input, checksum) = be_u32(input)?;
+    let (input, offset) = be_u32(input)?;
+    let (input, length) = be_u32(input)?;
+
+    Ok((input, TableRecord {
+        table_tag: Tag::new(table_tag),
+        checksum,
+        offset,
+        length
+    }))
+}
+
+pub fn compute_checksum(input: &[u8]) -> IResult<&[u8], u32> {
+    fold_many0(be_u32, 0, |acc: u32, v| acc.wrapping_add(v))(input)
+}
+
+pub fn compute_checksum_for_head(input: &[u8]) -> IResult<&[u8], u32> {
+    let (input, s0) = fold_many_m_n(0, 2, be_u32, 0, |acc: u32, v| acc.wrapping_add(v))(input)?;
+    let (input, _) = take(4usize)(input)?;
+    let (input, s1) = fold_many0(be_u32, 0, |acc: u32, v| acc.wrapping_add(v))(input)?;
+
+    Ok((input, s0.wrapping_add(s1)))
 }
 
 #[cfg(test)]
@@ -103,7 +91,7 @@ mod tests {
     fn case_table_record() {
         let expected = (&b""[..], TableRecord {
             table_tag: Tag::from(TableTag::Gdef),
-            check_sum: 3024269442,
+            checksum: 3024269442,
             offset: 141532,
             length: 610
         });

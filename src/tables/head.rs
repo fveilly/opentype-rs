@@ -1,6 +1,6 @@
-use error::Error;
-use nom::{be_i16, be_u16, be_i32, be_u32, be_i64};
-use traits::{Parser, TableParser};
+use nom::IResult;
+use nom::number::complete::{be_i16, be_u16, be_i32, be_u32, be_i64};
+use nom::combinator::verify;
 use types::{Fixed, LongDateTime, Rect};
 
 /// Font Header Table
@@ -121,9 +121,7 @@ impl<'otf> FontHeaderTable {
     }
 }
 
-impl<'otf> Parser<'otf> for FontHeaderTable {
-    type Item = FontHeaderTable;
-
+impl_parse!(
     /// Parse Font Header Table.
     ///
     /// # Example
@@ -133,7 +131,7 @@ impl<'otf> Parser<'otf> for FontHeaderTable {
     ///
     /// use otf::tables::head::FontHeaderTable;
     /// use otf::types::Rect;
-    /// use otf::traits::Parser;
+    /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x01, 0x00, 0x00, 0x00, 0x02, 0x23, 0x12, 0x8A, 0x7F, 0x70, 0x48, 0x5F, 0x0F,
@@ -141,7 +139,7 @@ impl<'otf> Parser<'otf> for FontHeaderTable {
     ///     0x00, 0x00, 0x00, 0x00, 0xD5, 0x01, 0x52, 0xF4, 0xFA, 0x1B, 0xFD, 0xD5, 0x09, 0x30,
     ///     0x08, 0x73, 0x00, 0x00, 0x00, 0x09, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00];
     ///
-    /// let font_header_table = FontHeaderTable::parse(bytes).unwrap();
+    /// let font_header_table = FontHeaderTable::parse(bytes).unwrap().1;
     ///
     /// assert_eq!(font_header_table.font_revision(), 140050);
     /// assert_eq!(font_header_table.check_sum_adjustment(), 2323607624);
@@ -156,65 +154,60 @@ impl<'otf> Parser<'otf> for FontHeaderTable {
     /// assert_eq!(font_header_table.index_to_loc_format(),  0);
     /// assert_eq!(font_header_table.glyph_data_format(), 0);
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        Ok(parse_font_header_table(buf)?.1)
-    }
-}
-
-impl<'otf> TableParser<'otf> for FontHeaderTable {}
-
-named!(pub parse_font_header_table<&[u8],FontHeaderTable>,
-    do_parse!(
-        verify!(be_u16, |major_version| major_version == 1) >>
-        verify!(be_u16, |minor_version| minor_version == 0) >>
-        font_revision: be_i32 >>
-        check_sum_adjustment: be_u32 >>
-        verify!(be_u32, |magic_number| magic_number == 0x5F0F3CF5) >>
-        flags: be_u16 >>
-        units_per_em: be_u16 >>
-        created: be_i64 >>
-        modified: be_i64 >>
-        x_min: be_i16 >>
-        y_min: be_i16 >>
-        x_max: be_i16 >>
-        y_max: be_i16 >>
-        mac_style: be_u16 >>
-        lowest_rec_ppem: be_u16 >>
-        font_direction_hint: be_i16 >>
-        index_to_loc_format: be_i16 >>
-        glyph_data_format: be_i16 >>
-        (
-            FontHeaderTable {
-                font_revision,
-                check_sum_adjustment,
-                flags,
-                units_per_em,
-                created,
-                modified,
-                x_min,
-                y_min,
-                x_max,
-                y_max,
-                mac_style,
-                lowest_rec_ppem,
-                font_direction_hint,
-                index_to_loc_format,
-                glyph_data_format
-            }
-        )
-    )
+    FontHeaderTable, parse_font_header_table
 );
+
+pub fn parse_font_header_table(input: &[u8]) -> IResult<&[u8], FontHeaderTable>
+{
+    let (input, _) = verify(be_u16, |major_version| *major_version == 1)(input)?;
+    let (input, _) = verify(be_u16, |minor_version| *minor_version == 0)(input)?;
+    let (input, font_revision) = be_i32(input)?;
+    let (input, check_sum_adjustment) = be_u32(input)?;
+    let (input, _) = verify(be_u32, |magic_number| *magic_number == 0x5F0F3CF5)(input)?;
+    let (input, flags) = be_u16(input)?;
+    let (input, units_per_em) = be_u16(input)?;
+    let (input, created) = be_i64(input)?;
+    let (input, modified) = be_i64(input)?;
+    let (input, x_min) = be_i16(input)?;
+    let (input, y_min) = be_i16(input)?;
+    let (input, x_max) = be_i16(input)?;
+    let (input, y_max) = be_i16(input)?;
+    let (input, mac_style) = be_u16(input)?;
+    let (input, lowest_rec_ppem) = be_u16(input)?;
+    let (input, font_direction_hint) = be_i16(input)?;
+    let (input, index_to_loc_format) = be_i16(input)?;
+    let (input, glyph_data_format) = be_i16(input)?;
+
+    Ok((input, FontHeaderTable {
+        font_revision,
+        check_sum_adjustment,
+        flags,
+        units_per_em,
+        created,
+        modified,
+        x_min,
+        y_min,
+        x_max,
+        y_max,
+        mac_style,
+        lowest_rec_ppem,
+        font_direction_hint,
+        index_to_loc_format,
+        glyph_data_format
+    }))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_font_header_table_invalid_empty_slice() {
         let bytes: &[u8]  = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_font_header_table(bytes),  expected);
     }
 
@@ -227,7 +220,7 @@ mod tests {
             0x08, 0x73, 0x00, 0x00, 0x00, 0x09, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00
         ];
 
-        let expected = Result::Err(Err::Error(Context::Code(&bytes[12..], ErrorKind::Verify)));
+        let expected = Err(Err::Error(error_position!(&bytes[12..], ErrorKind::Verify)));
         assert_eq!(parse_font_header_table(bytes),  expected);
     }
 }

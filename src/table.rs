@@ -5,17 +5,17 @@ use table_record::{compute_checksum, compute_checksum_for_head};
 pub struct Table<'otf> {
     buf: &'otf[u8],
     tag: TableTag,
-    check_sum: u32,
+    checksum: u32,
     offset: usize,
     length: usize
 }
 
 impl<'otf> Table<'otf> {
-    pub(crate) fn new(buf: &'otf[u8], tag: TableTag, check_sum: u32, offset: usize, length: usize) -> Table<'otf> {
+    pub(crate) fn new(buf: &'otf[u8], tag: TableTag, checksum: u32, offset: usize, length: usize) -> Table<'otf> {
         Table {
             buf,
             tag,
-            check_sum,
+            checksum,
             offset,
             length
         }
@@ -25,7 +25,7 @@ impl<'otf> Table<'otf> {
     ///
     /// If the table record content is corrupted or the checksum does not match this method
     /// shall return None. Else return the actual slice of the table non padded.
-    pub(crate) fn get_table_as_slice(&self) -> Result<&'otf[u8], Error> {
+    pub fn as_slice(&self) -> Result<&'otf[u8], Error> {
         // All tables must begin on four-byte boundaries, and any remaining space between tables
         // is padded with zeros. The length of all tables should be recorded in the table record
         // with their actual length (not their padded length).
@@ -35,19 +35,19 @@ impl<'otf> Table<'otf> {
 
         match self.tag {
             TableTag::Head => {
-                let checksum = compute_checksum_for_head(table_padded_buf)?;
+                let (_, checksum) = compute_checksum_for_head(table_padded_buf)?;
 
-                if checksum != self.check_sum {
-                    return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.check_sum, checksum)))
+                if checksum != self.checksum {
+                    return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.checksum, checksum)))
                 }
 
                 Ok(&table_padded_buf[..self.length])
             },
             _ => {
-                let checksum = compute_checksum(table_padded_buf)?;
+                let (_, checksum) = compute_checksum(table_padded_buf)?;
 
-                if checksum != self.check_sum {
-                    return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.check_sum, checksum)))
+                if checksum != self.checksum {
+                    return Err(Error::new(format!("Invalid checksum: expected {} got {}", self.checksum, checksum)))
                 }
 
                 Ok(&table_padded_buf[..self.length])
@@ -71,7 +71,7 @@ mod tests {
             0x00, 0x00, 0x00, 0x00];
 
         assert_eq!(Table::new(
-            bytes, TableTag::Cmap,1907845740, 0, 7).get_table_as_slice().unwrap(), &bytes[..7]);
+            bytes, TableTag::Cmap,1907845740, 0, 7).as_slice().unwrap(), &bytes[..7]);
     }
 
     #[test]
@@ -79,7 +79,7 @@ mod tests {
         let table_record = Table::new(
             &[] as &[u8], TableTag::Cmap,0, 0, 0);
 
-        assert_eq!(table_record.get_table_as_slice().unwrap(), &[] as &[u8]);
+        assert_eq!(table_record.as_slice().unwrap(), &[] as &[u8]);
     }
 
     #[test]
@@ -88,7 +88,7 @@ mod tests {
             0x6F, 0x72, 0x6C, 0x64];
 
         assert!(Table::new(
-            bytes, TableTag::Cmap,0, 13, 5).get_table_as_slice().is_err());
+            bytes, TableTag::Cmap,0, 13, 5).as_slice().is_err());
     }
 
     #[test]
@@ -97,9 +97,9 @@ mod tests {
             0x6F, 0x72, 0x6C, 0x64];
 
         assert!(Table::new(
-            bytes, TableTag::Cmap,0, 0, 13).get_table_as_slice().is_err());
+            bytes, TableTag::Cmap,0, 0, 13).as_slice().is_err());
 
         assert!(Table::new(
-            bytes, TableTag::Cmap,0, 4, 7).get_table_as_slice().is_err());
+            bytes, TableTag::Cmap,0, 4, 7).as_slice().is_err());
     }
 }

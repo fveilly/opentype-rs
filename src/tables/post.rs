@@ -1,9 +1,13 @@
 #![allow(deprecated)]
 
-use error::Error;
-use nom::{be_u8, be_i16, be_u16, be_i32, be_u32, IResult};
+use nom::IResult;
+use nom::Err as NomErr;
+use nom::multi::count;
+use nom::combinator::map_res;
+use nom::bytes::complete::take;
+use nom::error::ErrorKind;
+use nom::number::complete::{be_u8, be_i16, be_u16, be_i32, be_u32};
 use std::{ops, str};
-use traits::{Parser, TableParser};
 
 /// PostScript Table
 ///
@@ -113,9 +117,7 @@ impl PostScriptTable {
     }
 }
 
-impl<'otf> Parser<'otf> for PostScriptTable {
-    type Item = PostScriptTable;
-
+impl_parse!(
     /// Parse Post Script Table.
     ///
     /// # Example
@@ -130,14 +132,14 @@ impl<'otf> Parser<'otf> for PostScriptTable {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::tables::post::{PostScriptTable, PostScriptVersion};
-    /// use otf::traits::Parser;
+    /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x6A, 0x00, 0x64, 0x00, 0x00,
     ///     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ///     0x00, 0x00, 0x00, 0x00];
     ///
-    /// let post_script_table = PostScriptTable::parse(bytes).unwrap();
+    /// let post_script_table = PostScriptTable::parse(bytes).unwrap().1;
     ///
     /// assert_eq!(post_script_table.italic_angle(), 0);
     /// assert_eq!(post_script_table.underline_position(), -150);
@@ -162,12 +164,8 @@ impl<'otf> Parser<'otf> for PostScriptTable {
     ///     _ => assert!(false)
     /// }
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        Ok(parse_post_script_table(buf)?.1)
-    }
-}
-
-impl<'otf> TableParser<'otf> for PostScriptTable {}
+    PostScriptTable, parse_post_script_table
+);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 #[allow(non_camel_case_types, deprecated)]
@@ -333,21 +331,21 @@ impl PostScriptTableV20 {
     }
 
     /// Parse the glyph names into a vector of &str.
-    pub fn parse_glyph_names<'otf>(&self, input: &'otf[u8]) -> Result<Vec<&'otf str>, Error> {
+    pub fn parse_glyph_names<'otf>(&self, input: &'otf[u8]) -> IResult<&'otf[u8], Vec<&'otf str>> {
         let count = self.glyph_name_indexes.iter().fold(0, |n, &i| {
             if 258 <= i && i <= 32767 { n + 1 } else { n }
         });
 
-        Ok(parse_pascal_strings(input, count)?.1)
+        parse_pascal_strings(input, count)
     }
 
     /// Parse the glyph names into a vector of String.
-    pub fn parse_glyph_names_to_owned(&self, input: &[u8]) -> Result<Vec<String>, Error> {
+    pub fn parse_glyph_names_to_owned<'otf>(&self, input: &'otf[u8]) -> IResult<&'otf[u8], Vec<String>> {
         let count = self.glyph_name_indexes.iter().fold(0, |n, &i| {
             if 258 <= i && i <= 32767 { n + 1 } else { n }
         });
 
-        Ok(parse_pascal_strings_to_owned(input, count)?.1)
+        parse_pascal_strings_to_owned(input, count)
     }
 }
 
@@ -358,68 +356,97 @@ impl<'otf> ops::Deref for PostScriptTableV20 {
     }
 }
 
-named!(pub parse_post_script_table<&[u8],PostScriptTable>,
-    switch!(be_i32,
-     	0x00010000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_1_0(header))) |
-        0x00020000 => map!(parse_post_script_table_v2_0, |post_script_v2_0| PostScriptTable(PostScriptVersion::Version_2_0(post_script_v2_0))) |
-     	0x00025000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_2_5(header))) |
-     	0x00030000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_3_0(header))) |
-     	0x00040000 => map!(parse_post_script_header, |header| PostScriptTable(PostScriptVersion::Version_4_0(header)))
-    )
-);
+pub fn parse_post_script_table(input: &[u8]) -> IResult<&[u8], PostScriptTable>
+{
+    let (input, version) = be_i32(input)?;
 
-named!(parse_post_script_header<&[u8],PostScriptTableHeader>,
-    do_parse!(
-        italic_angle: be_i32 >>
-        underline_position: be_i16 >>
-        underline_thickness: be_i16 >>
-        is_fixed_pitch: be_u32 >>
-        min_mem_type_42: be_u32 >>
-        max_mem_type_42: be_u32 >>
-        min_mem_type_1: be_u32 >>
-        max_mem_type_1: be_u32 >>
-        (
-            PostScriptTableHeader {
-                italic_angle,
-                underline_position,
-                underline_thickness,
-                is_fixed_pitch,
-                min_mem_type_42,
-                max_mem_type_42,
-                min_mem_type_1,
-                max_mem_type_1
-            }
-        )
-    )
-);
+    match version {
+        0x00010000 => {
+            let (input, header) = parse_post_script_header(input)?;
+            Ok((input, PostScriptTable(PostScriptVersion::Version_1_0(header))))
+        },
+        0x00020000 => {
+            let (input, header) = parse_post_script_table_v2_0(input)?;
+            Ok((input, PostScriptTable(PostScriptVersion::Version_2_0(header))))
+        },
+        0x00025000 => {
+            let (input, header) = parse_post_script_header(input)?;
+            Ok((input, PostScriptTable(PostScriptVersion::Version_2_5(header))))
+        },
+        0x00030000 => {
+            let (input, header) = parse_post_script_header(input)?;
+            Ok((input, PostScriptTable(PostScriptVersion::Version_3_0(header))))
+        },
+        0x00040000 => {
+            let (input, header) = parse_post_script_header(input)?;
+            Ok((input, PostScriptTable(PostScriptVersion::Version_4_0(header))))
+        },
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
+    }
+}
 
-named!(parse_post_script_table_v2_0<&[u8],PostScriptTableV20>,
-    do_parse!(
-        header: parse_post_script_header >>
-        num_glyphs: be_u16 >>
-        glyph_name_indexes: count!(be_u16, usize::from(num_glyphs)) >>
-        (
-            PostScriptTableV20 {
-                header,
-                num_glyphs,
-                glyph_name_indexes
-            }
-        )
-    )
-);
+fn parse_post_script_header(input: &[u8]) -> IResult<&[u8], PostScriptTableHeader>
+{
+    let (input, italic_angle) = be_i32(input)?;
+    let (input, underline_position) = be_i16(input)?;
+    let (input, underline_thickness) = be_i16(input)?;
+    let (input, is_fixed_pitch) = be_u32(input)?;
+    let (input, min_mem_type_42) = be_u32(input)?;
+    let (input, max_mem_type_42) = be_u32(input)?;
+    let (input, min_mem_type_1) = be_u32(input)?;
+    let (input, max_mem_type_1) = be_u32(input)?;
+
+    Ok((input, PostScriptTableHeader {
+        italic_angle,
+        underline_position,
+        underline_thickness,
+        is_fixed_pitch,
+        min_mem_type_42,
+        max_mem_type_42,
+        min_mem_type_1,
+        max_mem_type_1
+    }))
+}
+
+fn parse_post_script_table_v2_0(input: &[u8]) -> IResult<&[u8], PostScriptTableV20>
+{
+    let (input, header) = parse_post_script_header(input)?;
+    let (input, num_glyphs) = be_u16(input)?;
+    let (input, glyph_name_indexes) = count(be_u16, usize::from(num_glyphs))(input)?;
+
+    Ok((input, PostScriptTableV20 {
+        header,
+        num_glyphs,
+        glyph_name_indexes
+    }))
+}
+
+fn parse_pascal_string(input: &[u8]) -> IResult<&[u8], &str>
+{
+    let (input, size) = be_u8(input)?;
+    map_res(take(usize::from(size)), |s: &[u8]| str::from_utf8(s))(input)
+}
+
+fn parse_pascal_string_to_owned(input: &[u8]) -> IResult<&[u8], String>
+{
+    let (input, size) = be_u8(input)?;
+    map_res(take(usize::from(size)), |s: &[u8]| String::from_utf8(s.to_vec()))(input)
+}
 
 pub fn parse_pascal_strings(input: &[u8], length: usize) -> IResult<&[u8], Vec<&str>> {
-    count!(input, map_res!(length_data!(be_u8), |s| str::from_utf8(s)), length)
+
+    count(parse_pascal_string, length)(input)
 }
 
 pub fn parse_pascal_strings_to_owned(input: &[u8], length: usize) -> IResult<&[u8], Vec<String>> {
-    count!(input, map_res!(length_data!(be_u8), |s: &[u8]| String::from_utf8(s.to_vec())), length)
+    count(parse_pascal_string_to_owned, length)(input)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_post_script_table_pascal_strings() {
@@ -449,7 +476,7 @@ mod tests {
     fn case_post_script_table_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(4)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_post_script_table(bytes), expected);
     }
 }

@@ -1,5 +1,9 @@
-use error::{ErrorKindExt, Error};
-use nom::{be_u16, be_u32, Context, Err, ErrorKind, IResult};
+use error::Error;
+use nom::Err as NomErr;
+use nom::IResult;
+use nom::error::ErrorKind;
+use nom::number::complete::{be_u16, be_u32};
+use nom::multi::count;
 use types::{Offset16, Offset32};
 
 /// Index to Location
@@ -63,25 +67,14 @@ pub fn parse_index_to_location_table(input: &[u8], index_to_loc_format: i16, num
     match index_to_loc_format {
         // 0 for short offsets (Offset16)
         0 => {
-            do_parse!(
-                input,
-                offsets: count!(be_u16, num_glyphs as usize + 1) >>
-                (
-                    IndexToLocationTable::Short(offsets)
-                )
-            )
+            let (input, offsets) = count(be_u16, usize::from(num_glyphs) + 1)(input)?;
+            Ok((input, IndexToLocationTable::Short(offsets)))
         },
         // 1 for long (Offset32)
         1 => {
-            do_parse!(
-                input,
-                offsets: count!(be_u32, num_glyphs as usize + 1) >>
-                (
-                    IndexToLocationTable::Long(offsets)
-                )
-            )
+            let (input, offsets) = count(be_u32, usize::from(num_glyphs) + 1)(input)?;
+            Ok((input, IndexToLocationTable::Long(offsets)))
         },
-        _ => Result::Err(Err::Error(
-            Context::Code(input, ErrorKind::Custom(ErrorKindExt::InvalidIndexToLocFormat as u32))))
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
     }
 }

@@ -1,8 +1,13 @@
-use error::Error;
-use nom::{be_u8, be_i16, be_u16, be_u24, be_u32};
-use tables::name::Platform;
+use nom::IResult;
+use nom::Err as NomErr;
+use nom::bytes::complete::take;
+use nom::error::ErrorKind;
+use nom::combinator::{map_res, verify};
+use nom::multi::count;
+use nom::number::complete::{be_u8, be_i16, be_u16, be_u24, be_u32};
+use types::Offset32;
 use std::collections::HashMap;
-use traits::{Parser, TableParser};
+use std::convert::TryFrom;
 use super::GlyphId;
 
 /// This table defines mapping of character codes to a default glyph index. Different subtables may
@@ -41,9 +46,7 @@ impl<'otf> CharacterGlyphIndexMappingTable {
     }
 }
 
-impl<'otf> Parser<'otf> for CharacterGlyphIndexMappingTable {
-    type Item = EncodingRecords<'otf>;
-
+impl_parse!(
     /// Parse Character to Glyph Index Mapping Table.
     ///
     /// # Example
@@ -51,17 +54,8 @@ impl<'otf> Parser<'otf> for CharacterGlyphIndexMappingTable {
     /// ```
     /// // TODO
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        let res = parse_character_glyph_index_mapping_table(buf)?;
-
-        Ok(EncodingRecords {
-            buf: res.0,
-            table: res.1
-        })
-    }
-}
-
-impl<'otf> TableParser<'otf> for CharacterGlyphIndexMappingTable {}
+    CharacterGlyphIndexMappingTable, parse_character_glyph_index_mapping_table
+);
 
 pub struct EncodingRecords<'otf> {
     buf: &'otf[u8],
@@ -85,9 +79,9 @@ pub struct EncodingRecordsIterator<'otf> {
 }
 
 impl<'otf> Iterator for EncodingRecordsIterator<'otf> {
-    type Item = EncodingRecord<'otf>;
+    type Item = EncodingRecord;
 
-    fn next(&mut self) -> Option<EncodingRecord<'otf>> {
+    fn next(&mut self) -> Option<EncodingRecord> {
         if self.pos >= self.num_tables {
             return None;
         }
@@ -125,20 +119,26 @@ impl<'otf> Iterator for EncodingRecordsIterator<'otf> {
 /// in the 'name' table chapter. Some specific details applicable to the 'cmap' table are
 /// provided here.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct EncodingRecord<'otf> {
-    platform: Platform,
-    character_to_glyph_index_mapping_subtable: CharacterGlyphIndexMappingSubtable<'otf>
+pub struct EncodingRecord {
+    platform_id: u16,
+    encoding_id: u16,
+    offset: Offset32
 }
 
-impl<'otf> EncodingRecord<'otf> {
-    /// The platform, encoding and language IDs.
-    pub fn platform(&self) -> Platform {
-        self.platform
+impl EncodingRecord {
+    /// Platform ID.
+    pub fn platform_id(&self) -> u16 {
+        self.platform_id
     }
 
-    /// Subtable for this encoding.
-    pub fn character_to_glyph_index_mapping_subtable(&self) -> &CharacterGlyphIndexMappingSubtable<'otf> {
-        &self.character_to_glyph_index_mapping_subtable
+    /// Platform-specific encoding ID.
+    pub fn encoding_id(&self) -> u16 {
+        self.encoding_id
+    }
+
+    /// Byte offset from beginning of table to the subtable for this encoding.
+    pub fn offset(&self) -> Offset32 {
+        self.offset
     }
 }
 
@@ -455,18 +455,8 @@ impl<'otf> CharacterGlyphIndexMappingSubtable6<'otf> {
             return None;
         }
 
-        let res = do_parse!(self.glyph_id_array,
-            take!((character_code - self.first_code) * 2) >>
-            glyph_id: be_u16 >>
-            (
-                glyph_id
-            )
-        );
-
-        match res {
-            Ok((_, glyph_id)) => Some(glyph_id),
-            _ => None
-        }
+        // TODO:
+        None
     }
 
     pub fn mapping(&self) -> HashMap<u32, GlyphId> {
@@ -857,19 +847,30 @@ impl UVSMappingRecord {
     }
 }
 
-named!(pub parse_character_glyph_index_mapping_table<&[u8],CharacterGlyphIndexMappingTable>,
-    do_parse!(
-        verify!(be_u16, |version| version == 0) >>
-        num_tables: be_u16 >>
-        (
-            CharacterGlyphIndexMappingTable {
-                num_tables
-            }
-        )
-    )
-);
+pub fn parse_character_glyph_index_mapping_table(input: &[u8]) -> IResult<&[u8], CharacterGlyphIndexMappingTable>
+{
+    let (input, _) = verify(be_u16, |version| *version == 0)(input)?;
+    let (input, num_tables) = be_u16(input)?;
 
-named!(pub parse_encoding_record<&[u8],EncodingRecord>,
+    Ok((input, CharacterGlyphIndexMappingTable {
+        num_tables
+    }))
+}
+
+pub fn parse_encoding_record(input: &[u8]) -> IResult<&[u8], EncodingRecord>
+{
+    let (input, platform_id) = be_u16(input)?;
+    let (input, encoding_id) = be_u16(input)?;
+    let (input, offset) = be_u32(input)?;
+
+    Ok((input, EncodingRecord {
+        platform_id,
+        encoding_id,
+        offset
+    }))
+}
+
+/*named!(pub parse_encoding_record<&[u8],EncodingRecord>,
     do_parse!(
         platform_id: be_u16 >>
         encoding_id: be_u16 >>
@@ -901,66 +902,159 @@ named!(pub parse_encoding_record<&[u8],EncodingRecord>,
             }
         )
     )
-);
+);*/
 
-named!(pub parse_character_to_glyph_index_mapping_subtable<&[u8],CharacterGlyphIndexMappingSubtable>,
-    alt!(parse_character_to_glyph_index_mapping_subtable_0 |
-         parse_character_to_glyph_index_mapping_subtable_2 |
-         parse_character_to_glyph_index_mapping_subtable_4 |
-         parse_character_to_glyph_index_mapping_subtable_6 |
-         parse_character_to_glyph_index_mapping_subtable_8 |
-         parse_character_to_glyph_index_mapping_subtable_10 |
-         parse_character_to_glyph_index_mapping_subtable_12 |
-         parse_character_to_glyph_index_mapping_subtable_13 |
-         parse_character_to_glyph_index_mapping_subtable_14)
-);
+pub fn parse_character_to_glyph_index_mapping_subtable(input: &[u8]) -> IResult<&[u8], CharacterGlyphIndexMappingSubtable>
+{
+    let (input, format) = be_u16(input)?;
 
-named!(parse_character_to_glyph_index_mapping_subtable_0<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 0) >>
-        _length: be_u16 >>
-        language: be_u16 >>
-        glyph_id_array: take!(256) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_0(CharacterGlyphIndexMappingSubtable0 {
+    match format {
+        0 => {
+            let (input, _length) = be_u16(input)?;
+            let (input, language) = be_u16(input)?;
+            let (input, glyph_id_array) = take(256usize)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_0(CharacterGlyphIndexMappingSubtable0 {
                 language,
                 glyph_id_array
-            })
-        )
-    )
-);
+            })))
+        },
+        2 => {
+            let (input, _length) = be_u16(input)?;
+            let (input, language) = be_u16(input)?;
+            let (input, sub_header_keys) = count(be_u16, 256)(input)?;
 
-named!(parse_character_to_glyph_index_mapping_subtable_2<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 2) >>
-        _length: be_u16 >>
-        language: be_u16 >>
-        sub_header_keys: count!(be_u16, 256) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_2(CharacterGlyphIndexMappingSubtable2 {
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_2(CharacterGlyphIndexMappingSubtable2 {
                 language,
                 sub_header_keys
-            })
-        )
-    )
-);
+            })))
+        },
+        4 => {
+            let (input, _length) = be_u16(input)?;
+            let (input, language) = be_u16(input)?;
+            let (input, seg_count) = be_u16(input)?;
+            let (input, search_range) = be_u16(input)?;
+            let (input, entry_selector) = be_u16(input)?;
+            let (input, range_shift) = be_u16(input)?;
+            let (input, end_code) = count(be_u16, usize::from(seg_count))(input)?;
+            let (input, _) = take(2usize)(input)?;
+            let (input, start_code) = count(be_u16, usize::from(seg_count))(input)?;
+            let (input, id_delta) = count(be_i16, usize::from(seg_count))(input)?;
+            let (input, id_range_offset) = count(be_u16, usize::from(seg_count))(input)?;
+            let glyph_id_count = get_glyph_id_count(seg_count, &start_code, &end_code, &id_range_offset)
+                .ok_or(NomErr::Error(error_position!(input, ErrorKind::Alt)))?;
+            let (input, glyph_id_array) = take(glyph_id_count)(input)?;
 
-named!(parse_character_to_glyph_index_mapping_subtable_2_sub_header_record<&[u8],CharacterGlyphIndexMappingSubtable2SubHeaderRecord>,
-    do_parse!(
-        first_code: be_u16 >>
-        entry_count: be_u16 >>
-        id_delta: be_i16 >>
-        id_range_offset: be_u16 >>
-        (
-            CharacterGlyphIndexMappingSubtable2SubHeaderRecord {
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_4(CharacterGlyphIndexMappingSubtable4 {
+                language,
+                seg_count,
+                search_range,
+                entry_selector,
+                range_shift,
+                end_code,
+                start_code,
+                id_delta,
+                id_range_offset,
+                glyph_id_array
+            })))
+        },
+        6 => {
+            let (input, _length) = be_u16(input)?;
+            let (input, language) = be_u16(input)?;
+            let (input, first_code) = be_u16(input)?;
+            let (input, entry_count) = be_u16(input)?;
+            let (input, glyph_id_array) = take(entry_count * 2)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_6(CharacterGlyphIndexMappingSubtable6 {
+                language,
                 first_code,
                 entry_count,
-                id_delta,
-                id_range_offset
-            }
-        )
-    )
-);
+                glyph_id_array
+            })))
+        },
+        8 => {
+            // Reserved; set to 0
+            let (input, _) = take(2usize)(input)?;
+            let (input, _length) = be_u32(input)?;
+            let (input, language) = be_u32(input)?;
+            let (input, is32) = take(8192usize)(input)?;
+            let (input, num_groups) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+            let (input, groups) = count(parse_sequential_map_group, num_groups)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_8(CharacterGlyphIndexMappingSubtable8 {
+                language: language as u16,
+                is32,
+                groups
+            })))
+        },
+        10 => {
+            // Reserved; set to 0
+            let (input, _) = take(2usize)(input)?;
+            let (input, _length) = be_u32(input)?;
+            let (input, language) = be_u32(input)?;
+            let (input, start_char_code) = be_u32(input)?;
+            let (input, num_chars) = be_u32(input)?;
+            let (input, glyphs) = take(num_chars * 2)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_10(CharacterGlyphIndexMappingSubtable10 {
+                language: language as u16,
+                start_char_code,
+                glyphs
+            })))
+        },
+        12 => {
+            // Reserved; set to 0
+            let (input, _) = take(2usize)(input)?;
+            let (input, _length) = be_u32(input)?;
+            let (input, language) = be_u32(input)?;
+            let (input, num_groups) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+            let (input, groups) = count(parse_sequential_map_group, num_groups)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_12(CharacterGlyphIndexMappingSubtable12 {
+                language: language as u16,
+                groups
+            })))
+        },
+        13 => {
+            // Reserved; set to 0
+            let (input, _) = take(2usize)(input)?;
+            let (input, _length) = be_u32(input)?;
+            let (input, language) = be_u32(input)?;
+            let (input, num_groups) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+            let (input, groups) = count(parse_constant_map_group, num_groups)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_13(CharacterGlyphIndexMappingSubtable13 {
+                language: language as u16,
+                groups
+            })))
+        },
+        14 => {
+            let (input, _length) = be_u32(input)?;
+            let (input, num_var_selector_records) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+            let (input, var_selector) = count(parse_variation_selector_record, num_var_selector_records)(input)?;
+
+            Ok((input, CharacterGlyphIndexMappingSubtable::Format_14(CharacterGlyphIndexMappingSubtable14 {
+                var_selector
+            })))
+        },
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
+    }
+}
+
+fn parse_character_to_glyph_index_mapping_subtable_2_sub_header_record(input: &[u8]) -> IResult<&[u8], CharacterGlyphIndexMappingSubtable2SubHeaderRecord>
+{
+    let (input, first_code) = be_u16(input)?;
+    let (input, entry_count) = be_u16(input)?;
+    let (input, id_delta) = be_i16(input)?;
+    let (input, id_range_offset) = be_u16(input)?;
+
+    Ok((input, CharacterGlyphIndexMappingSubtable2SubHeaderRecord {
+        first_code,
+        entry_count,
+        id_delta,
+        id_range_offset
+    }))
+}
 
 fn get_glyph_id_count(seg_count: u16, start_code: &Vec<u16>, end_code: &Vec<u16>, id_range_offset: &Vec<u16>) -> Option<usize> {
     // The final start code and end code values must be 0xFFFF
@@ -989,235 +1083,83 @@ fn get_glyph_id_count(seg_count: u16, start_code: &Vec<u16>, end_code: &Vec<u16>
     Some(length as usize)
 }
 
-named!(pub parse_character_to_glyph_index_mapping_subtable_4<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 4) >>
-        _length: be_u16 >>
-        language: be_u16 >>
-        seg_count: map!(verify!(be_u16, |val| val > 0 && val % 2 == 0),
-            |seg_count_x2| seg_count_x2 << 1) >>
-        search_range: be_u16 >>
-        entry_selector: be_u16 >>
-        range_shift: be_u16 >>
-        end_code: count!(be_u16, seg_count as usize) >>
-        // reservedPad
-        take!(2) >>
-        start_code: count!(be_u16, seg_count as usize) >>
-        id_delta: count!(be_i16, seg_count as usize) >>
-        id_range_offset: count!(be_u16, seg_count as usize) >>
-        glyph_id_count: expr_opt!(get_glyph_id_count(seg_count, &start_code, &end_code, &id_range_offset)) >>
-        glyph_id_array: take!(glyph_id_count) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_4(CharacterGlyphIndexMappingSubtable4 {
-                language,
-                seg_count,
-                search_range,
-                entry_selector,
-                range_shift,
-                end_code,
-                start_code,
-                id_delta,
-                id_range_offset,
-                glyph_id_array
-            })
-        )
-    )
-);
+fn parse_sequential_map_group(input: &[u8]) -> IResult<&[u8], SequentialMapGroup>
+{
+    let (input, start_char_code) = be_u32(input)?;
+    let (input, end_char_code) = be_u32(input)?;
+    let (input, start_glyph_id) = be_u32(input)?;
 
-named!(parse_character_to_glyph_index_mapping_subtable_6<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 6) >>
-        _length: be_u16 >>
-        language: be_u16 >>
-        first_code: be_u16 >>
-        entry_count: be_u16 >>
-        glyph_id_array: take!(entry_count * 2) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_6(CharacterGlyphIndexMappingSubtable6 {
-                language,
-                first_code,
-                entry_count,
-                glyph_id_array
-            })
-        )
-    )
-);
+    Ok((input, SequentialMapGroup {
+        start_char_code,
+        end_char_code,
+        start_glyph_id
+    }))
+}
 
-named!(parse_character_to_glyph_index_mapping_subtable_8<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 8) >>
-        // Reserved; set to 0
-        take!(2) >>
-        _length: be_u32 >>
-        language: be_u32 >>
-        is32: take!(8192) >>
-        groups: length_count!(be_u32, parse_sequential_map_group) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_8(CharacterGlyphIndexMappingSubtable8 {
-                language: language as u16,
-                is32,
-                groups
-            })
-        )
-    )
-);
+fn parse_constant_map_group(input: &[u8]) -> IResult<&[u8], ConstantMapGroup>
+{
+    let (input, start_char_code) = be_u32(input)?;
+    let (input, end_char_code) = be_u32(input)?;
+    let (input, glyph_id) = be_u32(input)?;
 
-named!(parse_sequential_map_group<&[u8],SequentialMapGroup>,
-    do_parse!(
-        start_char_code: be_u32 >>
-        end_char_code: be_u32 >>
-        start_glyph_id: be_u32 >>
-        (
-            SequentialMapGroup {
-                start_char_code,
-                end_char_code,
-                start_glyph_id
-            }
-        )
-    )
-);
+    Ok((input, ConstantMapGroup {
+        start_char_code,
+        end_char_code,
+        glyph_id
+    }))
+}
 
-named!(parse_constant_map_group<&[u8],ConstantMapGroup>,
-    do_parse!(
-        start_char_code: be_u32 >>
-        end_char_code: be_u32 >>
-        glyph_id: be_u32 >>
-        (
-            ConstantMapGroup {
-                start_char_code,
-                end_char_code,
-                glyph_id
-            }
-        )
-    )
-);
+fn parse_variation_selector_record(input: &[u8]) -> IResult<&[u8], VariationSelectorRecord>
+{
+    let (input, var_selector) = be_u24(input)?;
+    let (input, default_uvs_offset) = be_u32(input)?;
+    let (input, non_default_uvs_offset) = be_u32(input)?;
 
-named!(parse_character_to_glyph_index_mapping_subtable_10<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 10) >>
-        // Reserved; set to 0
-        take!(2) >>
-        _length: be_u32 >>
-        language: be_u32 >>
-        start_char_code: be_u32 >>
-        num_chars: be_u32 >>
-        glyphs: take!(num_chars * 2) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_10(CharacterGlyphIndexMappingSubtable10 {
-                language: language as u16,
-                start_char_code,
-                glyphs
-            })
-        )
-    )
-);
+    Ok((input, VariationSelectorRecord {
+        var_selector,
+        default_uvs_offset,
+        non_default_uvs_offset
+    }))
+}
 
-named!(parse_character_to_glyph_index_mapping_subtable_12<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 12) >>
-        // Reserved; set to 0
-        take!(2) >>
-        _length: be_u32 >>
-        language: be_u32 >>
-        groups: length_count!(be_u32, parse_sequential_map_group) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_12(CharacterGlyphIndexMappingSubtable12 {
-                language: language as u16,
-                groups
-            })
-        )
-    )
-);
+fn parse_default_uvs_table(input: &[u8]) -> IResult<&[u8], DefaultUVSTable>
+{
+    let (input, num_unicode_value_ranges) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+    let (input, ranges) = count(parse_unicode_range_record, num_unicode_value_ranges)(input)?;
 
-named!(parse_character_to_glyph_index_mapping_subtable_13<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 13) >>
-        // Reserved; set to 0
-        take!(2) >>
-        _length: be_u32 >>
-        language: be_u32 >>
-        groups: length_count!(be_u32, parse_constant_map_group) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_13(CharacterGlyphIndexMappingSubtable13 {
-                language: language as u16,
-                groups
-            })
-        )
-    )
-);
+    Ok((input, DefaultUVSTable {
+        ranges
+    }))
+}
 
-named!(parse_character_to_glyph_index_mapping_subtable_14<&[u8],CharacterGlyphIndexMappingSubtable>,
-    do_parse!(
-        verify!(be_u16, |format| format == 14) >>
-        _length: be_u32 >>
-        var_selector: length_count!(be_u32, parse_variation_selector_record) >>
-        (
-            CharacterGlyphIndexMappingSubtable::Format_14(CharacterGlyphIndexMappingSubtable14 {
-                var_selector
-            })
-        )
-    )
-);
+fn parse_unicode_range_record(input: &[u8]) -> IResult<&[u8], UnicodeRangeRecord>
+{
+    let (input, start_unicode_value) = be_u24(input)?;
+    let (input, additional_count) = be_u8(input)?;
 
-named!(parse_variation_selector_record<&[u8],VariationSelectorRecord>,
-    do_parse!(
-        var_selector: be_u24 >>
-        default_uvs_offset: be_u32 >>
-        non_default_uvs_offset: be_u32 >>
-        (
-            VariationSelectorRecord {
-                var_selector,
-                default_uvs_offset,
-                non_default_uvs_offset
-            }
-        )
-    )
-);
+    Ok((input, UnicodeRangeRecord {
+        start_unicode_value,
+        additional_count
+    }))
+}
 
-named!(parse_default_uvs_table<&[u8],DefaultUVSTable>,
-    do_parse!(
-        ranges: length_count!(be_u32, parse_unicode_range_record) >>
-        (
-            DefaultUVSTable {
-                ranges
-            }
-        )
-    )
-);
+fn parse_non_default_uvs_table(input: &[u8]) -> IResult<&[u8], NonDefaultUVSTable>
+{
+    let (input, num_uvs_mappings) = map_res(be_u32, |v|usize::try_from(v))(input)?;
+    let (input, uvs_mappings) = count(parse_uvs_mapping_record, num_uvs_mappings)(input)?;
 
-named!(parse_unicode_range_record<&[u8],UnicodeRangeRecord>,
-    do_parse!(
-        start_unicode_value: be_u24 >>
-        additional_count: be_u8 >>
-        (
-            UnicodeRangeRecord {
-                start_unicode_value,
-                additional_count
-            }
-        )
-    )
-);
+    Ok((input, NonDefaultUVSTable {
+        uvs_mappings
+    }))
+}
 
-named!(parse_non_default_uvs_table<&[u8],NonDefaultUVSTable>,
-    do_parse!(
-        uvs_mappings: length_count!(be_u32, parse_uvs_mapping_record) >>
-        (
-            NonDefaultUVSTable {
-                uvs_mappings
-            }
-        )
-    )
-);
+fn parse_uvs_mapping_record(input: &[u8]) -> IResult<&[u8], UVSMappingRecord>
+{
+    let (input, unicode_value) = be_u24(input)?;
+    let (input, glyph_id) = be_u16(input)?;
 
-named!(parse_uvs_mapping_record<&[u8],UVSMappingRecord>,
-    do_parse!(
-        unicode_value: be_u24 >>
-        glyph_id: be_u16 >>
-        (
-            UVSMappingRecord {
-                unicode_value,
-                glyph_id
-            }
-        )
-    )
-);
+    Ok((input, UVSMappingRecord {
+        unicode_value,
+        glyph_id
+    }))
+}

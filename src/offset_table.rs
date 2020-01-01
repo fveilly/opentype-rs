@@ -1,5 +1,8 @@
-use nom::be_u16;
 use std::fmt;
+use nom::IResult;
+use nom::Err as NomErr;
+use nom::error::ErrorKind;
+use nom::number::complete::{be_u16, be_u32};
 
 /// The OpenType font starts with the Offset Table. If the font file contains only one font, the
 /// Offset Table will begin at byte 0 of the file. If the font file is an OpenType Font Collection
@@ -68,38 +71,38 @@ impl fmt::Display for SfntVersion {
     }
 }
 
-named!(pub parse_offset_table<&[u8], OffsetTable>,
-    do_parse!(
-        sfnt_version: parse_sfnt_version >>
-        num_tables: be_u16 >>
-        search_range: be_u16 >>
-        entry_selector: be_u16 >>
-        range_shift: be_u16 >>
-        (
-            OffsetTable {
-                sfnt_version,
-                num_tables,
-                search_range,
-                entry_selector,
-                range_shift
-            }
-        )
-    )
-);
+pub fn parse_offset_table(input: &[u8]) -> IResult<&[u8], OffsetTable>
+{
+    let (input, sfnt_version) = parse_sfnt_version(input)?;
+    let (input, num_tables) = be_u16(input)?;
+    let (input, search_range) = be_u16(input)?;
+    let (input, entry_selector) = be_u16(input)?;
+    let (input, range_shift) = be_u16(input)?;
 
-named!(parse_sfnt_version<&[u8], SfntVersion>,
-    alt!(
-        map!(alt!(tag!([0, 1, 0, 0]) | tag!("true") | tag!("typ1")), 
-            |_| SfntVersion::TrueType) |
-        map!(tag!("OTTO"), 
-            |_| SfntVersion::CFF)
-    )
-);
+    Ok((input, OffsetTable {
+        sfnt_version,
+        num_tables,
+        search_range,
+        entry_selector,
+        range_shift
+    }))
+}
+
+fn parse_sfnt_version(input: &[u8]) -> IResult<&[u8], SfntVersion>
+{
+    let (input, sfnt_version) = be_u32(input)?;
+    match sfnt_version {
+        0x00010000 | 0x74727565 /* true */ | 0x74797031 /* typ1 */ => Ok((input, SfntVersion::TrueType)),
+        0x4F54544F /* OTTO */ => Ok((input, SfntVersion::CFF)),
+        _ => Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Context, Err, ErrorKind, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     mod util {
         pub fn bytes_with_sfnt_version(sfnt_version: &[u8]) -> [u8; 12] {
@@ -154,7 +157,7 @@ mod tests {
     fn case_offset_table_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(4)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_offset_table(bytes), expected);
     }
 
@@ -164,7 +167,8 @@ mod tests {
             0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x80, 0x00, 0x03, 0x00, 0x70,
         ];
 
-        let expected = Result::Err(Err::Error(Context::Code(bytes, ErrorKind::Alt)));
+
+        let expected = Err(Err::Error(error_position!(&bytes[4..], ErrorKind::Alt)));
         assert_eq!(parse_offset_table(bytes), expected);
     }
 }

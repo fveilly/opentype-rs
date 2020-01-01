@@ -1,4 +1,11 @@
-use nom::{be_u16, be_u32};
+use nom::multi::count;
+use nom::Err as NomErr;
+use nom::IResult;
+use nom::bytes::complete::tag;
+use nom::error::ErrorKind;
+use nom::combinator::map_res;
+use nom::number::complete::{be_u16, be_u32};
+use std::convert::TryFrom;
 use types::Offset32;
 
 /// The purpose of the TTC Header table is to locate the different Offset Tables within a TTC file.
@@ -7,17 +14,11 @@ use types::Offset32;
 /// an array of offsets to each Offset Table.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TTCHeader {
-    num_fonts: u32,
     offset_table: Vec<Offset32>,
     dsig: Option<TTCDigitalSignature>
 }
 
 impl TTCHeader {
-    /// Number of fonts in TTC.
-    pub fn num_fonts(&self) -> u32 {
-        self.num_fonts
-    }
-
     /// Array of offsets to the OffsetTable for each font from the beginning of the file.
     #[allow(dead_code)]
     pub fn offset_table(&self) -> &[u32] {
@@ -54,61 +55,55 @@ impl TTCDigitalSignature {
     }
 }
 
-named!(pub parse_ttc_header<&[u8],TTCHeader>,
-    preceded!(tag!("ttcf"), alt!(parse_ttc_header_v1 | parse_ttc_header_v2))
-);
+pub fn parse_ttc_header(input: &[u8]) -> IResult<&[u8], TTCHeader>
+{
+    let (input, _) = tag("ttcf")(input)?;
+    let (input, major_version) = be_u16(input)?;
+    let (input, minor_version) = be_u16(input)?;
 
-named!(parse_ttc_header_v1<&[u8],TTCHeader>,
-    do_parse!(
-        verify!(be_u16, |major_version| major_version == 1) >>
-        verify!(be_u16, |minor_version| minor_version == 0) >>
-        num_fonts: be_u32 >>
-        offset_table: count!(be_u32, num_fonts as usize) >>
-        (
-            TTCHeader {
-                num_fonts,
-                offset_table,
-                dsig: None
-            }
-        )
-    )
-);
+    if major_version == 1 && minor_version == 0 {
+        let (input, num_fonts) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+        let (input, offset_table) = count(be_u32, num_fonts)(input)?;
 
-named!(parse_ttc_header_v2<&[u8],TTCHeader>,
-    do_parse!(
-        verify!(be_u16, |major_version| major_version == 2) >>
-        verify!(be_u16, |minor_version| minor_version == 0) >>
-        num_fonts: be_u32 >>
-        offset_table: count!(be_u32, num_fonts as usize) >>
-        dsig_tag: be_u32 >>
-        dsig_length: be_u32 >>
-        dsig_offset: be_u32 >>
-        ({
-            // If there’s no signature, then the last three fields of the version 2.0 header
-            // are left null
-            let dsig = match dsig_tag {
-                0x44534947 => {
-                    Some(TTCDigitalSignature {
-                        dsig_length,
-                        dsig_offset
-                    })
-                },
-                _ => None
-            };
+        Ok((input, TTCHeader {
+            offset_table,
+            dsig: None
+        }))
+    }
+    else if major_version == 2 && minor_version == 0 {
+        let (input, num_fonts) = map_res(be_u32, |v| usize::try_from(v))(input)?;
+        let (input, offset_table) = count(be_u32, num_fonts)(input)?;
+        let (input, dsig_tag) = be_u32(input)?;
+        let (input, dsig_length) = be_u32(input)?;
+        let (input, dsig_offset) = be_u32(input)?;
 
-            TTCHeader {
-                num_fonts,
-                offset_table,
-                dsig
-            }
-        })
-    )
-);
+        // If there’s no signature, then the last three fields of the version 2.0 header
+        // are left null
+        let dsig = match dsig_tag {
+            0x44534947 => {
+                Some(TTCDigitalSignature {
+                    dsig_length,
+                    dsig_offset
+                })
+            },
+            _ => None
+        };
+
+        Ok((input, TTCHeader {
+            offset_table,
+            dsig
+        }))
+    }
+    else {
+        Err(NomErr::Error(error_position!(input, ErrorKind::Alt)))
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, ErrorKind, Context};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_ttc_header_v1_0() {
@@ -120,7 +115,7 @@ mod tests {
 
         let ttc_header = parse_ttc_header(bytes).unwrap().1;
 
-        assert_eq!(ttc_header.num_fonts(), 8);
+        assert_eq!(ttc_header.offset_table().len(), 8);
         assert_eq!(ttc_header.offset_table(), &([44, 296, 548, 800, 1052, 1304, 1556, 1808] as [u32; 8]));
         assert_eq!(ttc_header.dsig(), None);
     }
@@ -138,7 +133,7 @@ mod tests {
             0x00, 0x00, 0x01, 0x18, 0x00, 0x00, 0x02, 0x14,
             0x00, 0x00, 0x03, 0x10
         ];
-        let expected = Result::Err(Err::Error(Context::Code(&bytes[4..], ErrorKind::Alt)));
+        let expected = Err(Err::Error(error_position!(&bytes[8..], ErrorKind::Alt)));
 
         let res = parse_ttc_header(bytes);
         assert_eq!(res,  expected);

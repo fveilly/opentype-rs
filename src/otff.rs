@@ -1,5 +1,8 @@
 use error::Error;
 use font::Font;
+use nom::IResult;
+use nom::branch::alt;
+use nom::combinator::map;
 use offset_table::{OffsetTable, parse_offset_table};
 use ttc_header::{TTCHeader, parse_ttc_header};
 
@@ -92,19 +95,20 @@ impl<'otf> Iterator for OpenTypeFontFileIterator<'otf> {
                 (1, Some(1))
             },
             OpenTypeFontKind::FontCollection(ttc_header) => {
-                let num_fonts = ttc_header.num_fonts() as usize;
+                let num_fonts = ttc_header.offset_table().len();
                 (num_fonts, Some(num_fonts))
             }
         }
     }
 }
 
-named!(pub parse_otff<&[u8],OpenTypeFontKind>,
-    alt!(
-        map!(parse_offset_table, |offset_table| OpenTypeFontKind::Font(offset_table)) |
-        map!(parse_ttc_header, |ttc_header| OpenTypeFontKind::FontCollection(ttc_header))
-    )
-);
+pub fn parse_otff(input: &[u8]) -> IResult<&[u8], OpenTypeFontKind>
+{
+    alt((
+        map(parse_offset_table, |offset_table| OpenTypeFontKind::Font(offset_table)),
+        map(parse_ttc_header, |ttc_header| OpenTypeFontKind::FontCollection(ttc_header))
+    ))(input)
+}
 
 #[cfg(test)]
 mod tests {

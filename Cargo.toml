@@ -1,6 +1,6 @@
 [package]
 name = "opentype_rs"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Florent Veilly <florent.veilly@gmail.com>"]
 description = "Safe, fast and memory efficient OpenType font file parser"
 readme = "README.md"
@@ -9,5 +9,5 @@ keywords = ["font", "truetype", "opentype", "ttf", "otf"]
 exclude = ["/fonts/**"]
 
 [dependencies]
-nom = "^4.1"
-bitflags = "^1.0.4"
+nom = "^5.0"
+bitflags = "^1.1"

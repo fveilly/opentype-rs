@@ -1,6 +1,7 @@
-use error::Error;
-use nom::{be_i16, be_u16};
-use traits::{Parser, TableParser};
+use nom::IResult;
+use nom::bytes::complete::take;
+use nom::combinator::verify;
+use nom::number::complete::{be_i16, be_u16};
 
 /// Horizontal Header Table
 ///
@@ -87,9 +88,7 @@ impl HorizontalHeaderTable {
     }
 }
 
-impl<'otf> Parser<'otf> for HorizontalHeaderTable {
-    type Item = HorizontalHeaderTable;
-
+impl_parse!(
     /// Parse Horizontal Header Table.
     ///
     /// # Example
@@ -98,14 +97,14 @@ impl<'otf> Parser<'otf> for HorizontalHeaderTable {
     /// extern crate opentype_rs as otf;
     ///
     /// use otf::tables::hhea::HorizontalHeaderTable;
-    /// use otf::traits::Parser;
+     /// use otf::parser::Parse;
     ///
     /// let bytes: &[u8]  = &[
     ///     0x00, 0x01, 0x00, 0x00, 0x07, 0x6C, 0xFE, 0x0C, 0x00, 0x00, 0x09, 0x49, 0xFA, 0x1B,
     ///     0xFE, 0x4A, 0x09, 0x30, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     ///     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x0E];
     ///
-    /// let horizontal_header_table = HorizontalHeaderTable::parse(bytes).unwrap();
+    /// let horizontal_header_table = HorizontalHeaderTable::parse(bytes).unwrap().1;
     ///
     /// assert_eq!(horizontal_header_table.ascender(), 1900);
     /// assert_eq!(horizontal_header_table.descender(), -500);
@@ -120,59 +119,55 @@ impl<'otf> Parser<'otf> for HorizontalHeaderTable {
     /// assert_eq!(horizontal_header_table.metric_data_format(),  0);
     /// assert_eq!(horizontal_header_table.number_of_hmetrics(), 1294);
     /// ```
-    fn parse(buf: &'otf[u8]) -> Result<Self::Item, Error> {
-        Ok(parse_horizontal_header_table(buf)?.1)
-    }
-}
-
-impl<'otf> TableParser<'otf> for HorizontalHeaderTable {}
-
-named!(pub parse_horizontal_header_table<&[u8],HorizontalHeaderTable>,
-    do_parse!(
-        verify!(be_u16, |major_version| major_version == 1) >>
-        verify!(be_u16, |minor_version| minor_version == 0) >>
-        ascender: be_i16 >>
-        descender: be_i16 >>
-        line_gap: be_i16 >>
-        advance_width_max: be_u16 >>
-        min_left_side_bearing: be_i16 >>
-        min_right_side_bearing: be_i16 >>
-        x_max_extent: be_i16 >>
-        caret_slope_rise: be_i16 >>
-        caret_slope_run: be_i16 >>
-        caret_offset: be_i16 >>
-        take!(8) >> // reserved
-        metric_data_format: be_i16 >>
-        number_of_hmetrics: be_u16 >>
-        (
-            HorizontalHeaderTable {
-                ascender,
-                descender,
-                line_gap,
-                advance_width_max,
-                min_left_side_bearing,
-                min_right_side_bearing,
-                x_max_extent,
-                caret_slope_rise,
-                caret_slope_run,
-                caret_offset,
-                metric_data_format,
-                number_of_hmetrics
-            }
-        )
-    )
+    HorizontalHeaderTable, parse_horizontal_header_table
 );
+
+pub fn parse_horizontal_header_table(input: &[u8]) -> IResult<&[u8], HorizontalHeaderTable>
+{
+    let (input, _) = verify(be_u16, |major_version| *major_version == 1)(input)?;
+    let (input, _) = verify(be_u16, |minor_version| *minor_version == 0)(input)?;
+    let (input, ascender) = be_i16(input)?;
+    let (input, descender) = be_i16(input)?;
+    let (input, line_gap) = be_i16(input)?;
+    let (input, advance_width_max) = be_u16(input)?;
+    let (input, min_left_side_bearing) = be_i16(input)?;
+    let (input, min_right_side_bearing) = be_i16(input)?;
+    let (input, x_max_extent) = be_i16(input)?;
+    let (input, caret_slope_rise) = be_i16(input)?;
+    let (input, caret_slope_run) = be_i16(input)?;
+    let (input, caret_offset) = be_i16(input)?;
+    // reserved
+    let (input, _) = take(8usize)(input)?;
+    let (input, metric_data_format) = be_i16(input)?;
+    let (input, number_of_hmetrics) = be_u16(input)?;
+
+    Ok((input, HorizontalHeaderTable {
+        ascender,
+        descender,
+        line_gap,
+        advance_width_max,
+        min_left_side_bearing,
+        min_right_side_bearing,
+        x_max_extent,
+        caret_slope_rise,
+        caret_slope_run,
+        caret_offset,
+        metric_data_format,
+        number_of_hmetrics
+    }))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_head_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_horizontal_header_table(bytes), expected);
     }
 }

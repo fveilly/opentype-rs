@@ -2,25 +2,6 @@ use std::fmt::{self, Display};
 use std::error;
 use nom::Err;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ErrorKindExt {
-    InvalidIndexToLocFormat
-}
-
-impl ErrorKindExt {
-    pub fn description(&self) -> &str {
-        match *self {
-            ErrorKindExt::InvalidIndexToLocFormat => "Invalid indexToLocFormat entry",
-        }
-    }
-}
-
-impl Display for ErrorKindExt {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str(self.description())
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct Error {
     message: String

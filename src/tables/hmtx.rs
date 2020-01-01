@@ -1,5 +1,7 @@
 use error::Error;
-use nom::{be_i16, be_u16, IResult};
+use nom::IResult;
+use nom::number::complete::{be_i16, be_u16};
+use nom::multi::count;
 
 /// Horizontal Metrics Table
 ///
@@ -131,39 +133,40 @@ impl LongHorMetricRecord {
 
 pub fn parse_horizontal_metrics_table(input: &[u8], number_of_hmetrics: u16, num_glyphs: u16)
     -> IResult<&[u8], HorizontalMetricsTable> {
-    do_parse!(
-        input,
-        h_metrics: count!(parse_long_hor_metric_record, usize::from(number_of_hmetrics)) >>
-        left_side_bearings: map!(cond!(number_of_hmetrics < num_glyphs,
-            count!(be_i16, usize::from(num_glyphs - number_of_hmetrics))), |left_side_bearings_opt| {
-                left_side_bearings_opt.unwrap_or(Vec::new())
-            }) >>
-        (
-            HorizontalMetricsTable {
-                h_metrics,
-                left_side_bearings
-            }
-        )
-    )
+    let (input, h_metrics) = count(parse_long_hor_metric_record, usize::from(number_of_hmetrics))(input)?;
+
+    if number_of_hmetrics < num_glyphs {
+        let (input, left_side_bearings) = count(be_i16, usize::from(num_glyphs - number_of_hmetrics))(input)?;
+
+        Ok((input, HorizontalMetricsTable {
+            h_metrics,
+            left_side_bearings
+        }))
+    }
+    else {
+        Ok((input, HorizontalMetricsTable {
+            h_metrics,
+            left_side_bearings: Vec::new()
+        }))
+    }
 }
 
-named!(parse_long_hor_metric_record<&[u8],LongHorMetricRecord>,
-    do_parse!(
-        advance_width: be_u16 >>
-        lsb: be_i16 >>
-        (
-            LongHorMetricRecord {
-                advance_width,
-                lsb
-            }
-        )
-    )
-);
+pub fn parse_long_hor_metric_record(input: &[u8]) -> IResult<&[u8], LongHorMetricRecord>
+{
+    let (input, advance_width) = be_u16(input)?;
+    let (input, lsb) = be_i16(input)?;
+
+    Ok((input, LongHorMetricRecord {
+        advance_width,
+        lsb
+    }))
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nom::{Err, Needed};
+    use nom::Err;
+    use nom::error::ErrorKind;
 
     #[test]
     fn case_horizontal_metrics_table_left_side_bearings() {
@@ -183,7 +186,7 @@ mod tests {
     fn case_horizontal_metrics_table_invalid_empty_slice() {
         let bytes: &[u8] = &[];
 
-        let expected = Result::Err(Err::Incomplete(Needed::Size(2)));
+        let expected = Err(Err::Error(error_position!(bytes, ErrorKind::Eof)));
         assert_eq!(parse_horizontal_metrics_table(bytes, 10, 10), expected);
     }
 }

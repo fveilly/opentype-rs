@@ -6,16 +6,16 @@ extern crate nom;
 #[macro_use]
 extern crate bitflags;
 
+#[macro_use]
+pub mod parser;
+
 mod error;
 mod font;
-#[macro_use]
-mod nom_ext;
 mod offset_table;
 mod otff;
 mod table;
 mod table_record;
 mod ttc_header;
-pub mod traits;
 pub mod tables;
 pub mod types;
 
